@@ -1,0 +1,32 @@
+{% extends 'quiz_app/base.html' %}
+
+{% block title %}Chọn Nhóm để Xuất file{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Xuất Dữ liệu ra Excel</h1>
+    </div>
+
+    <p>Chọn một Nhóm chủ đề dưới đây để tải về file Excel tương ứng. Mỗi chủ đề trong nhóm sẽ là một sheet trong file.</p>
+
+    <div class="list-group">
+        {% for group in topic_groups %}
+            <a href="{% url 'export_topic_group' group.id %}" class="list-group-item list-group-item-action">
+                <div class="d-flex w-100 justify-content-between">
+                    <h5 class="mb-1"><i class="bi bi-file-earmark-spreadsheet-fill"></i> {{ group.group_name }}.xlsx</h5>
+                    <small>{{ group.topic_set.count }} chủ đề</small>
+                </div>
+                <p class="mb-1 text-muted">Tải về file Excel cho nhóm chủ đề này.</p>
+            </a>
+        {% empty %}
+            <div class="list-group-item">
+                <p class="mb-0">Bạn không có nhóm chủ đề nào chứa dữ liệu để xuất.</p>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="mt-4">
+        <a href="{% url 'topic_group_list' %}" class="btn btn-secondary">&laquo; Quay lại Bảng điều khiển</a>
+    </div>
+
+{% endblock %}

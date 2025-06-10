@@ -1,0 +1,347 @@
+{% extends 'quiz_app/base.html' %} {% block title %}Danh sách Đề thi{% endblock%} 
+{% block content %} 
+{% csrf_token %}
+<style>
+  .quiz-table .col-name {
+    width: 40%;
+  }
+  .quiz-table .col-q-count {
+    width: 15%;
+  }
+  .quiz-table .col-time {
+    width: 15%;
+  }
+  .quiz-table .col-date {
+    width: 15%;
+  }
+  .quiz-table .col-actions {
+    width: 15%;
+  }
+</style>
+
+<div
+  class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom"
+>
+  <h1 class="h2">Danh sách đề thi</h1>
+  {% if perms.quiz_app.add_quiz %}
+  <div class="btn-toolbar mb-2 mb-md-0">
+    <a href="{% url 'create_quiz' %}" class="btn btn-primary">
+      <i class="bi bi-plus-circle"></i> Tạo Đề thi Mới
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+{# === KHỐI MÃ MỚI: FORM NHẬP MÃ THAM GIA === #}
+<div class="card my-4">
+  <div class="card-body">
+    <h5 class="card-title">Nhập Đề thi bằng mã</h5>
+    <form action="{% url 'enroll_in_quiz' %}" method="post" class="d-flex">
+      {% csrf_token %}
+      <input
+        type="text"
+        name="access_code"
+        class="form-control me-2"
+        placeholder="Nhập mã truy cập..."
+        required
+      />
+      <button type="submit" class="btn btn-primary">Nhập</button>
+    </form>
+  </div>
+</div>
+{# ========================================== #} 
+
+{# ===== BẢNG 1: ĐỀ THI TĨNH ===== #}
+<h3 class="h4 mt-4">Đề thi tĩnh</h3>
+<p class="text-muted">
+  Đề thi có câu hỏi đã được chọn sẵn, nội dung câu hỏi trong mỗi lần thi là như
+  nhau nhưng sẽ có khác nhau về thứ tự xuất hiện.
+</p>
+<div class="table-responsive">
+  <table class="table table-hover align-middle quiz-table">
+    <thead class="table-light">
+      <tr>
+        <th scope="col" class="col-name">Tên Đề thi</th>
+        <th scope="col" class="col-q-count">Số câu hỏi</th>
+        <th scope="col" class="col-time">Thời gian (phút)</th>
+        <th scope="col" class="col-date">Ngày tạo</th>
+        <th scope="col" class="col-actions text-end">Hành động</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for quiz in static_quizzes %}
+      <tr>
+        <td><strong>{{ quiz.quiz_name }}</strong></td>
+        <td>{{ quiz.question_count }}</td>
+        <td>{{ quiz.time_limit_minutes }}</td>
+        <td>{{ quiz.created_at|date:"d/m/Y" }}</td>
+        <td class="text-end">
+          <a href="{% url 'start_quiz' quiz.id %}" class="btn btn-sm btn-link text-success" data-bs-toggle="tooltip" data-bs-placement="top" title="Làm bài">
+              <i class="bi bi-play-circle-fill fs-5"></i>
+          </a>
+      
+          {% if perms.quiz_app.change_quiz %}
+              <button type="button" class="btn btn-sm btn-link text-info share-quiz-btn" data-quiz-id="{{ quiz.id }}" data-bs-toggle="tooltip" data-bs-placement="top" title="Chia sẻ">
+                  <i class="bi bi-share-fill fs-5"></i>
+              </button>
+          {% endif %}
+      
+          {% if perms.quiz_app.delete_quiz %}
+              <button type="button" class="btn btn-sm btn-link text-danger delete-quiz-btn" data-delete-url="{% url 'delete_quiz' quiz.id %}" data-bs-toggle="tooltip" data-bs-placement="top" title="Xóa">
+                  <i class="bi bi-trash-fill fs-5"></i>
+              </button>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" class="text-center p-4">
+          Chưa có đề thi tĩnh nào được tạo.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<hr class="my-5" />
+
+{# ===== BẢNG 2: MẪU ĐỀ THI ĐỘNG ===== #}
+<h3 class="h4">Đề thi động</h3>
+<p class="text-muted">
+  Hay còn gọi là mẫu đề thi, nội dung câu hỏi trong mỗi lần thi là khác nhau,
+  dựa trên cài đặt của người tạo đề.
+</p>
+<div class="table-responsive">
+  <table class="table table-hover align-middle quiz-table">
+    <thead class="table-light">
+      <tr>
+        <th scope="col" class="col-name">Tên Mẫu đề thi</th>
+        <th scope="col" class="col-q-count">Số câu hỏi</th>
+        <th scope="col" class="col-time">Thời gian (phút)</th>
+        <th scope="col" class="col-date">Ngày tạo</th>
+        <th scope="col" class="col-actions text-end">Hành động</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for quiz in dynamic_quizzes %}
+      <tr>
+        <td><strong>{{ quiz.quiz_name }}</strong></td>
+        <td>{{ quiz.question_count|default:0 }}</td>
+        <td>{{ quiz.time_limit_minutes }}</td>
+        <td>{{ quiz.created_at|date:"d/m/Y" }}</td>
+        <td class="text-end">
+          <a href="{% url 'start_quiz' quiz.id %}" class="btn btn-sm btn-link text-success" data-bs-toggle="tooltip" data-bs-placement="top" title="Làm bài">
+              <i class="bi bi-play-circle-fill fs-5"></i>
+          </a>
+      
+          {% if perms.quiz_app.change_quiz %}
+              <button type="button" class="btn btn-sm btn-link text-info share-quiz-btn" data-quiz-id="{{ quiz.id }}" data-bs-toggle="tooltip" data-bs-placement="top" title="Chia sẻ">
+                  <i class="bi bi-share-fill fs-5"></i>
+              </button>
+          {% endif %}
+      
+          {% if perms.quiz_app.delete_quiz %}
+              <button type="button" class="btn btn-sm btn-link text-danger delete-quiz-btn" data-delete-url="{% url 'delete_quiz' quiz.id %}" data-bs-toggle="tooltip" data-bs-placement="top" title="Xóa">
+                  <i class="bi bi-trash-fill fs-5"></i>
+              </button>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="4" class="text-center p-4">
+          Chưa có đề thi động nào được tạo.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{# MODAL MỚI: HIỂN THỊ MÃ CHIA SẺ #}
+<div
+  class="modal fade"
+  id="shareCodeModal"
+  tabindex="-1"
+  aria-labelledby="shareCodeModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="shareCodeModalLabel">Chia sẻ Đề thi</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body text-center">
+        <p>Gửi mã này cho người bạn muốn mời tham gia làm bài thi:</p>
+        <div
+          id="share-code-spinner"
+          class="spinner-border spinner-border-sm"
+          role="status"
+          style="display: none"
+        >
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <div class="d-flex justify-content-center align-items-center">
+          <h3
+            class="display-4"
+            id="access-code-display"
+            style="letter-spacing: 5px"
+          ></h3>
+          <button
+            type="button"
+            class="btn btn-light ms-3"
+            id="copy-code-btn"
+            title="Sao chép mã"
+          >
+            <i class="bi bi-clipboard"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# MODAL XÁC NHẬN XÓA #}
+<div
+  class="modal fade"
+  id="deleteQuizModal"
+  tabindex="-1"
+  aria-labelledby="deleteQuizModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="deleteQuizModalLabel">
+          Xác nhận Xóa Đề thi
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        Bạn có chắc chắn muốn xóa vĩnh viễn đề thi này?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Hủy bỏ</button
+        ><button type="button" id="confirmDeleteBtn" class="btn btn-danger">
+          Xác nhận Xóa
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // --- ĐỊNH NGHĨA CSRF TOKEN Ở ĐẦU SCRIPT ĐỂ DÙNG CHUNG ---
+    const csrfTokenInput = document.querySelector("[name=csrfmiddlewaretoken]");
+    const csrftoken = csrfTokenInput ? csrfTokenInput.value : "";
+
+    if (!csrftoken) {
+      console.error("Lỗi: Không tìm thấy CSRF Token trên trang!");
+    }
+
+    // --- LOGIC XỬ LÝ MODAL XÓA ĐỀ THI ---
+    const deleteModalEl = document.getElementById("deleteQuizModal");
+    if (deleteModalEl && csrftoken) {
+      const deleteModalInstance = new bootstrap.Modal(deleteModalEl);
+      let urlToDelete = "";
+
+      document.body.addEventListener("click", function (event) {
+        const deleteButton = event.target.closest(".delete-quiz-btn");
+        if (deleteButton) {
+          urlToDelete = deleteButton.dataset.deleteUrl;
+          deleteModalInstance.show();
+        }
+      });
+
+      const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
+      if (confirmDeleteBtn) {
+        confirmDeleteBtn.addEventListener("click", function () {
+          if (urlToDelete) {
+            fetch(urlToDelete, {
+              method: "POST",
+              headers: { "X-CSRFToken": csrftoken },
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                if (data.success) {
+                  window.location.reload();
+                } else {
+                  alert("Lỗi: " + (data.message || "Không thể xóa."));
+                  deleteModalInstance.hide();
+                }
+              });
+          }
+        });
+      }
+    } // Đóng if (deleteModalEl)
+
+    // --- LOGIC XỬ LÝ MODAL CHIA SẺ ĐỀ THI ---
+    const shareModalEl = document.getElementById("shareCodeModal");
+    if (shareModalEl && csrftoken) {
+      const shareModalInstance = new bootstrap.Modal(shareModalEl);
+      const codeDisplay = document.getElementById("access-code-display");
+      const spinner = document.getElementById("share-code-spinner");
+      const copyBtn = document.getElementById("copy-code-btn");
+
+      document.body.addEventListener("click", function (event) {
+        const shareButton = event.target.closest(".share-quiz-btn");
+        if (shareButton) {
+          const quizId = shareButton.dataset.quizId;
+          codeDisplay.textContent = "";
+          spinner.style.display = "block";
+          copyBtn.innerHTML = '<i class="bi bi-clipboard"></i>'; // Reset nút copy
+          shareModalInstance.show();
+
+          const url = `/quizzes/${quizId}/generate-code/`;
+          fetch(url, {
+            method: "POST",
+            headers: { "X-CSRFToken": csrftoken },
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              spinner.style.display = "none";
+              if (data.success) {
+                codeDisplay.textContent = data.code;
+              } else {
+                codeDisplay.textContent = "Lỗi!";
+              }
+            });
+        }
+      });
+
+      // Gắn sự kiện cho nút sao chép
+      if (copyBtn) {
+        copyBtn.addEventListener("click", function () {
+          const code = codeDisplay.textContent;
+          if (code && navigator.clipboard) {
+            navigator.clipboard.writeText(code).then(() => {
+              copyBtn.innerHTML =
+                '<i class="bi bi-clipboard-check-fill text-success"></i>';
+              setTimeout(() => {
+                copyBtn.innerHTML = '<i class="bi bi-clipboard"></i>';
+              }, 2000);
+            });
+          }
+        });
+      }
+    }
+    // === MÃ MỚI ĐỂ KÍCH HOẠT TOOLTIP ===
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+  }); // Đóng DOMContentLoaded
+</script>
+{% endblock %}

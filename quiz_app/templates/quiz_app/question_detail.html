@@ -1,0 +1,41 @@
+{% extends 'quiz_app/base.html' %}
+
+{% block title %}Chi tiết: {{ question.question_text|truncatechars:30 }}{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Chi tiết câu hỏi</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <a href="{% url 'question_list_in_topic' question.topic.id %}" class="btn btn-sm btn-outline-secondary">
+                &laquo; Quay lại danh sách Câu hỏi
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <h4 class="card-title">{{ question.question_text }}</h4>
+            
+            {% if question.question_image %}
+                <img src="{{ question.question_image.url }}" class="img-fluid rounded my-3" alt="Ảnh câu hỏi" style="max-width: 400px;">
+            {% endif %}
+
+            <h5 class="mt-4">Các lựa chọn trả lời:</h5>
+            
+            <ul class="list-group">
+                {% for answer in question.answers.all %}
+                    {# Sử dụng class 'list-group-item-success' để làm nổi bật đáp án đúng #}
+                    <li class="list-group-item {% if answer.is_correct %}list-group-item-success{% endif %}">
+                        {{ answer.answer_text }}
+                        
+                        {# Dòng if này đã được đóng lại đúng cách #}
+                        {% if answer.answer_image %}
+                            <img src="{{ answer.answer_image.url }}" class="img-fluid rounded my-3" alt="Ảnh đáp án" style="max-width: 200px; display: block; margin-top: 10px;">
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+{% endblock %}

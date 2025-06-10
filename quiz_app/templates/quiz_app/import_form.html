@@ -1,0 +1,62 @@
+{% extends 'quiz_app/base.html' %}
+
+{% block title %}
+    {% if topic %}Import vào Chủ đề{% else %}Import Toàn Bộ{% endif %}
+{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        {% if topic %}
+            <h1 class="h2">Import câu hỏi vào chủ đề: "{{ topic.topic_name }}"</h1>
+        {% else %}
+            <h1 class="h2">Import Toàn Bộ Dữ Liệu từ File Excel</h1>
+        {% endif %}
+    </div>
+
+    {% if topic %}
+        <div class="alert alert-info">
+            <h4 class="alert-heading">Hướng dẫn định dạng file Excel</h4>
+            <p>File Excel của bạn phải có một sheet với tên chính xác là <strong>"{{ topic.topic_name }}"</strong>.</p>
+            <p>Các cột trong sheet phải bao gồm: <strong>Nội dung</strong> và <strong>Đáp án đúng?</strong>.</p>
+            <ul>
+                <li>Dòng đầu tiên của một khối là nội dung câu hỏi.</li>
+                <li>Các dòng tiếp theo là các lựa chọn trả lời. Đánh dấu 'X' (không phân biệt hoa thường) vào cột "Đáp án đúng?" cho các câu trả lời đúng.</li>
+                <li>Các câu hỏi phải được ngăn cách với nhau bằng ít nhất một dòng trống hoàn toàn.</li>
+            </ul>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            <h4 class="alert-heading">Hướng dẫn định dạng file Excel</h4>
+            <p>Ứng dụng sẽ sử dụng <strong>tên file Excel</strong> của bạn (bỏ phần đuôi .xlsx) để làm <strong>tên Nhóm chủ đề</strong>.</p>
+            <p>Mỗi <strong>sheet</strong> trong file sẽ được coi là một <strong>Chủ đề</strong>.</p>
+            <p>Nội dung trong mỗi sheet tuân theo quy tắc thông thường: các câu hỏi ngăn cách bởi dòng trống, đáp án đúng được đánh dấu 'X'.</p>
+        </div>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="{{ form.file.id_for_label }}" class="form-label">{{ form.file.label }}</label>
+                    <input type="file" name="{{ form.file.name }}" class="form-control" required id="{{ form.file.id_for_label }}" accept=".xlsx, .xls">
+                    {% if form.file.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.file.errors|striptags }}
+                        </div>
+                    {% endif %}
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-upload"></i> Bắt đầu Import
+                </button>
+                
+                {# THAY ĐỔI CHÍNH NẰM Ở ĐÂY: Thêm điều kiện `and topic.id` #}
+                {% if topic and topic.id %}
+                    <a href="{% url 'question_list_in_topic' topic.id %}" class="btn btn-secondary">Hủy bỏ</a>
+                {% else %}
+                    <a href="{% url 'topic_group_list' %}" class="btn btn-secondary">Hủy bỏ</a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+{% endblock %}

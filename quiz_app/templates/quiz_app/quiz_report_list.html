@@ -1,0 +1,49 @@
+{% extends 'quiz_app/base.html' %}
+
+{% block title %}Báo cáo & Thống kê{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Báo cáo & Thống kê Đề thi</h1>
+    </div>
+
+    <p>Tổng quan về hiệu quả và kết quả của các đề thi bạn đã tạo.</p>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col">Tên Đề thi</th>
+                    <th scope="col">Loại</th>
+                    <th scope="col">Số lượt làm</th>
+                    <th scope="col">Điểm trung bình</th>
+                    <th scope="col" class="text-end">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for quiz in quizzes %}
+                    <tr>
+                        <td><strong>{{ quiz.quiz_name }}</strong></td>
+                        <td>
+                            {% if quiz.quiz_type == 'static' %}
+                                <span class="badge bg-primary">Tĩnh</span>
+                            {% else %}
+                                <span class="badge bg-info text-dark">Động</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ quiz.total_attempts }}</td>
+                        <td>{{ quiz.average_score|floatformat:2|default:"Chưa có" }}</td>
+                        <td class="text-end">
+                            {# Link này sẽ được xây dựng ở bước sau #}
+                            <a href="{% url 'quiz_detail_report' quiz.id %}" class="btn btn-sm btn-outline-primary">Xem chi tiết</a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center p-4">Bạn chưa tạo đề thi nào.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}

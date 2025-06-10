@@ -1,0 +1,166 @@
+{% extends 'quiz_app/base.html' %}
+{% load quiz_extras %}
+
+{% block title %}Kết quả: {{ attempt.quiz.quiz_name }}{% endblock %}
+
+{% block content %}
+    <style>
+        body {
+            padding-bottom: 120px; 
+        }
+        .result-nav-panel {
+            top: auto !important;
+            bottom: 0;
+            background-color: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            z-index: 1020;
+        }
+        .result-nav-box {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            user-select: none;
+            transition: transform 0.2s;
+        }
+        .result-nav-box:hover {
+            transform: scale(1.1);
+        }
+        .result-nav-box.correct-result { background-color: #198754; }
+        .result-nav-box.incorrect-result { background-color: #dc3545; }
+        .result-nav-box.active {
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.5);
+        }
+        .result-box { text-align: center; border: 1px solid #ccc; padding: 20px; margin: 20px auto; max-width: 600px; background-color: #fff; border-radius: 8px;}
+        .score { font-size: 2.5em; font-weight: bold; color: #007bff; }
+        .question-review { border-top: 1px solid #ddd; padding-top: 15px; }
+        .answer-option { display: block; padding: 8px; margin: 4px 0; border-radius: 4px; list-style-type: none; }
+        .selected-by-user { border-left: 5px solid #007bff; background-color: #e7f3ff; }
+        .correct-answer { color: #155724; background-color: #d4edda; }
+        .incorrect-selection { color: #721c24; background-color: #f8d7da; border-left: 5px solid #d9534f; }
+    </style>
+
+    <div class="result-box">
+        <h1>Bạn đã hoàn thành bài thi!</h1>
+        <h2>{{ attempt.quiz.quiz_name }}</h2>
+        <p>Điểm của bạn:</p>
+        <p class="score">{{ attempt.score_achieved|floatformat:2 }} / {{ attempt.quiz.scoring_scale_max }}</p>
+    </div>
+
+    <div class="review-container card">
+        <div class="card-header">
+            <h2 class="mb-0">Kết quả chi tiết bài thi:</h2>
+        </div>
+        <div class="card-body">
+            {% for answered_question in attempt.answered_questions.all %}
+                <div class="result-question-container {% if not forloop.first %}d-none{% endif %}" id="result-question-{{ forloop.counter0 }}">
+                    <div class="question-review">
+                        <h4>Câu <span class="question-number-display">{{ forloop.counter }}</span>: {{ answered_question.question.question_text }}</h4>
+                        <p><i>Kết quả: {% if answered_question.is_correct %}Đúng{% else %}Sai{% endif %}. Được: {{ answered_question.points_earned|floatformat:2 }} điểm</i></p>  
+
+                        <ul>
+                            {% for option in answered_question.question.answers.all %}
+                                {% if option in answered_question.selected_answers.all %}
+                                    {% if option.is_correct %}
+                                        <li class="answer-option correct-answer selected-by-user">
+                                            {{ forloop.counter0|to_char }}.
+                                            {{ option.answer_text }} (Đáp án bạn chọn đúng)
+                                        </li>
+                                    {% else %}
+                                        <li class="answer-option incorrect-selection">
+                                            {{ forloop.counter0|to_char }}.
+                                            {{ option.answer_text }} (Đáp án bạn chọn sai)
+                                        </li>
+                                    {% endif %}
+                                {% else %}
+                                    {% if option.is_correct %}
+                                        <li class="answer-option correct-answer">
+                                            {{ forloop.counter0|to_char }}.
+                                            {{ option.answer_text }} (Đáp án đúng của câu hỏi)
+                                        </li>
+                                    {% else %}
+                                        <li class="answer-option">
+                                            {{ forloop.counter0|to_char }}.
+                                            {{ option.answer_text }}
+                                        </li>
+                                    {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <nav class="navbar fixed-bottom result-nav-panel py-3">
+        <div class="container-fluid">
+            <button type="button" id="prev-result-btn" class="btn btn-outline-secondary" disabled>&laquo; Câu trước</button>
+
+            <div id="result-navigator" class="d-flex flex-wrap justify-content-center gap-2 mx-auto">
+                {% for answered_question in attempt.answered_questions.all %}
+                    <div class="result-nav-box 
+                                {% if answered_question.is_correct %}correct-result{% else %}incorrect-result{% endif %}
+                                {% if forloop.first %}active{% endif %}"
+                         data-question-index="{{ forloop.counter0 }}">
+                        {{ forloop.counter }}
+                    </div>
+                {% endfor %}
+            </div>
+
+            <button type="button" id="next-result-btn" class="btn btn-outline-primary"{% if attempt.answered_questions.all|length <= 1 %} disabled{% endif %}>Câu tiếp &raquo;</button>
+
+            <a href="{% url 'history_list' %}" class="btn btn-secondary ms-4">Quay lại Lịch sử</a>
+        </div>
+    </nav>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const questionContainers = document.querySelectorAll('.result-question-container');
+            const navBoxes = document.querySelectorAll('.result-nav-box');
+            const nextBtn = document.getElementById('next-result-btn');
+            const prevBtn = document.getElementById('prev-result-btn');
+            const totalQuestions = questionContainers.length;
+            let currentQuestionIndex = 0;
+            
+            // Logic điều hướng (đã được tinh giản)
+            function showQuestion(index) {
+                // Ẩn tất cả các câu hỏi
+                questionContainers.forEach(container => container.classList.add('d-none'));
+                // Hiện câu hỏi được chọn
+                if (questionContainers[index]) questionContainers[index].classList.remove('d-none');
+                
+                // Cập nhật trạng thái 'active' cho ô số điều hướng
+                navBoxes.forEach(box => box.classList.remove('active'));
+                if (navBoxes[index]) navBoxes[index].classList.add('active');
+
+                // Cập nhật trạng thái các nút
+                if(prevBtn) prevBtn.disabled = (index === 0);
+                if(nextBtn) nextBtn.disabled = (index === totalQuestions - 1);
+                
+                currentQuestionIndex = index;
+            }
+
+            if (nextBtn) nextBtn.addEventListener('click', () => { if (currentQuestionIndex < totalQuestions - 1) showQuestion(currentQuestionIndex + 1); });
+            if (prevBtn) prevBtn.addEventListener('click', () => { if (currentQuestionIndex > 0) showQuestion(currentQuestionIndex - 1); });
+            
+            navBoxes.forEach(box => {
+                box.addEventListener('click', function () {
+                    const index = parseInt(this.dataset.questionIndex, 10);
+                    showQuestion(index);
+                });
+            });
+
+            // Khởi chạy trạng thái ban đầu cho câu hỏi đầu tiên
+            if (totalQuestions > 0) {
+                showQuestion(0);
+            }
+        });
+    </script>
+{% endblock %}

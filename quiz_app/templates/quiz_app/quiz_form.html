@@ -1,0 +1,259 @@
+{% extends 'quiz_app/base.html' %}
+
+{% block title %}Tạo Đề thi Mới{% endblock %}
+
+{% block content %}
+    <style>
+        /* Tùy chỉnh nhỏ cho danh sách câu hỏi và các panel */
+        .question-checklist {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: .375rem;
+            padding: 1rem;
+        }
+        .form-check {
+            margin-bottom: 0.5rem;
+        }
+        /* Style cho các lựa chọn radio của quiz_type */
+        .quiz-type-chooser .form-check {
+            display: inline-block;
+            margin-right: 1rem;
+        }
+    </style>
+
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Tạo Đề thi Mới</h1>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                {# CÁC TRƯỜNG CHUNG #}
+                <div class="mb-3">
+                    <label for="{{ form.quiz_name.id_for_label }}" class="form-label">{{ form.quiz_name.label }}</label>
+                    <input type="text" name="{{ form.quiz_name.name }}" id="{{ form.quiz_name.id_for_label }}" class="form-control" required>
+                    {{ form.quiz_name.errors }}
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.time_limit_minutes.id_for_label }}" class="form-label">{{ form.time_limit_minutes.label }}</label>
+                        <input type="number" name="{{ form.time_limit_minutes.name }}" value="15" id="{{ form.time_limit_minutes.id_for_label }}" class="form-control" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.scoring_scale_max.id_for_label }}" class="form-label">{{ form.scoring_scale_max.label }}</label>
+                        <input type="number" name="{{ form.scoring_scale_max.name }}" value="100" id="{{ form.scoring_scale_max.id_for_label }}" class="form-control" required>
+                    </div>
+                </div>
+
+                <hr>
+
+                {# BỘ CHUYỂN ĐỔI LOẠI ĐỀ THI #}
+                <div class="mb-3">
+                    <label class="form-label">{{ form.quiz_type.label }}</label>
+                    <div class="quiz-type-chooser">
+                        {{ form.quiz_type }}
+                    </div>
+                </div>
+
+                {# PANEL CHO ĐỀ THI TĨNH - PHIÊN BẢN CÂY THƯ MỤC #}
+                <div id="static-quiz-panel">
+                    <div class="mb-3">
+                        {# THAY ĐỔI 1: Thêm bộ đếm vào label #}
+                        <label class="form-label">
+                            Chọn các câu hỏi cho đề thi (Đã chọn: <span id="selected-question-count" class="fw-bold">0</span>)
+                        </label>
+
+                        {% if form.questions.errors %}
+                            <div class="alert alert-danger">{{ form.questions.errors }}</div>
+                        {% endif %}
+
+                        <div class="question-checklist accordion" id="questionAccordion">
+                            {% for group in topic_groups_with_questions %}
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="heading-group-{{ group.id }}">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-group-{{ group.id }}">
+                                            {# THAY ĐỔI 2: Thêm checkbox "Chọn tất cả" cho nhóm #}
+                                            <input type="checkbox" class="form-check-input me-2 group-select-all" data-group-id="{{ group.id }}">
+                                            <strong>{{ group.group_name }}</strong>
+                                        </button>
+                                    </h2>
+                                    <div id="collapse-group-{{ group.id }}" class="accordion-collapse collapse" data-bs-parent="#questionAccordion">
+                                        <div class="accordion-body">
+                                            {% for topic in group.topics_with_questions %}
+                                                <div class="topic-container mt-2">
+                                                    <h5>{{ topic.topic_name }}</h5>
+                                                    {% for question in topic.questions.all %}
+                                                        <div class="form-check">
+                                                            {# THAY ĐỔI 3: Thêm class và data-group-id cho từng câu hỏi #}
+                                                            <input class="form-check-input question-checkbox" type="checkbox" name="questions" value="{{ question.id }}" id="question-{{ question.id }}" data-group-id="{{ group.id }}">
+                                                            <label class="form-check-label" for="question-{{ question.id }}">
+                                                                {{ question.question_text|truncatechars:100 }}
+                                                            </label>
+                                                        </div>
+                                                    {% endfor %}
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                {# PANEL CHO ĐỀ THI ĐỘNG #}
+                <div id="dynamic-quiz-panel" class="d-none">
+                    <p class="form-text">Chọn số lượng câu hỏi ngẫu nhiên sẽ được lấy từ mỗi chủ đề bên dưới. Bỏ trống hoặc điền 0 nếu không muốn lấy câu hỏi từ chủ đề đó.</p>
+
+                    <div class="row">
+                        {# Lặp qua tất cả các trường trong form #}
+                        {% for field in form %}
+                            {# Chỉ hiển thị các trường được tạo ra cho đề thi động #}
+                            {% if 'dynamic_topic_' in field.name %}
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        {{ field.label_tag }}
+                                        {{ field }}
+                                        {{ field.errors }}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+
+                </div>
+
+                <div class="mt-4">
+                    {# Bộ nút cho panel tĩnh #}
+                    <div id="static-quiz-actions">
+                        <button type="submit" class="btn btn-success">Lưu Đề thi</button>
+                        <a href="{% url 'quiz_list' %}" class="btn btn-secondary ms-2">Hủy bỏ</a>
+                    </div>
+
+                    {# Bộ nút cho panel động #}
+                    <div id="dynamic-quiz-actions" class="d-none">
+                        <button type="submit" class="btn btn-success">Lưu Mẫu đề thi</button>
+                        <button type="button" class="btn btn-info ms-2" id="take-now-btn">Làm bài ngay</button>
+                        <a href="{% url 'quiz_list' %}" class="btn btn-secondary ms-2">Hủy bỏ</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DEBUG: Script đã tải và DOM đã sẵn sàng.');
+
+        const csrftoken = document.querySelector('form [name=csrfmiddlewaretoken]') 
+                    ? document.querySelector('form [name=csrfmiddlewaretoken]').value
+                    : document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+        console.log('DEBUG: CSRF Token:', csrftoken ? 'Đã tìm thấy' : 'KHÔNG TÌM THẤY');
+                    
+        const deleteModalEl = document.getElementById('deleteQuizModal');
+        console.log('DEBUG: Đã tìm thấy phần tử modal xóa:', deleteModalEl);
+
+        if (deleteModalEl && csrftoken) {
+            console.log('DEBUG: Modal và CSRF token hợp lệ, bắt đầu cài đặt logic xóa.');
+            const deleteModalInstance = new bootstrap.Modal(deleteModalEl);
+            let urlToDelete = '';
+
+            document.body.addEventListener('click', function(event) {
+                console.log('DEBUG: Đã phát hiện một cú click trên trang.');
+                
+                const deleteButton = event.target.closest('.delete-quiz-btn');
+                if (deleteButton) {
+                    console.log('DEBUG: NÚT XÓA ĐÃ ĐƯỢC BẤM!', deleteButton);
+                    urlToDelete = deleteButton.dataset.deleteUrl;
+                    console.log('DEBUG: URL để xóa là:', urlToDelete);
+
+                    console.log('DEBUG: Đang chuẩn bị hiển thị modal...');
+                    deleteModalInstance.show();
+                    console.log('DEBUG: Lệnh show() đã được gọi.');
+                }
+            });
+
+            const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+            if(confirmDeleteBtn) {
+                console.log('DEBUG: Đã tìm thấy nút "Xác nhận Xóa", đang gắn sự kiện.');
+                confirmDeleteBtn.addEventListener('click', function() {
+                    // ... logic fetch không thay đổi ...
+                });
+            } else {
+                console.error('DEBUG: LỖI NGHIÊM TRỌNG - Không tìm thấy nút #confirmDeleteBtn');
+            }
+        } else {
+            console.error('DEBUG: LỖI - Không tìm thấy modal #deleteQuizModal hoặc CSRF token. Logic xóa sẽ không hoạt động.');
+        }
+    });
+
+    // === PHẦN 2: LOGIC MỚI CHO BỘ ĐẾM VÀ CHECKBOX "CHỌN TẤT CẢ" ===
+    const countSpan = document.getElementById('selected-question-count');
+    const allQuestionCheckboxes = document.querySelectorAll('.question-checkbox');
+    const groupSelectAllCheckboxes = document.querySelectorAll('.group-select-all');
+
+    // Hàm cập nhật bộ đếm
+    function updateSelectedCount() {
+        const selectedCount = document.querySelectorAll('.question-checkbox:checked').length;
+        if (countSpan) {
+            countSpan.textContent = selectedCount;
+        }
+    }
+
+    // Hàm cập nhật trạng thái của checkbox "Chọn tất cả"
+    function updateGroupSelectAllState(groupId) {
+        const masterCheckbox = document.querySelector(`.group-select-all[data-group-id="${groupId}"]`);
+        const childCheckboxes = document.querySelectorAll(`.question-checkbox[data-group-id="${groupId}"]`);
+        const total = childCheckboxes.length;
+        const checkedCount = document.querySelectorAll(`.question-checkbox[data-group-id="${groupId}"]:checked`).length;
+
+        if (masterCheckbox) {
+            if (checkedCount === 0) {
+                masterCheckbox.checked = false;
+                masterCheckbox.indeterminate = false;
+            } else if (checkedCount === total) {
+                masterCheckbox.checked = true;
+                masterCheckbox.indeterminate = false;
+            } else {
+                masterCheckbox.checked = false;
+                masterCheckbox.indeterminate = true; // Trạng thái lửng lơ
+            }
+        }
+    }
+
+    // Gắn sự kiện cho checkbox "Chọn tất cả" của nhóm
+    groupSelectAllCheckboxes.forEach(masterCheckbox => {
+        masterCheckbox.addEventListener('change', function() {
+            const groupId = this.dataset.groupId;
+            const isChecked = this.checked;
+            document.querySelectorAll(`.question-checkbox[data-group-id="${groupId}"]`)
+                    .forEach(child => child.checked = isChecked);
+            updateSelectedCount(); // Cập nhật lại bộ đếm
+        });
+    });
+
+    // Gắn sự kiện cho từng checkbox câu hỏi
+    allQuestionCheckboxes.forEach(childCheckbox => {
+        childCheckbox.addEventListener('change', function() {
+            const groupId = this.dataset.groupId;
+            updateGroupSelectAllState(groupId); // Cập nhật lại checkbox cha
+            updateSelectedCount(); // Cập nhật lại bộ đếm
+        });
+    });
+
+    // Khởi tạo trạng thái đúng khi tải trang
+    updateSelectedCount();
+    groupSelectAllCheckboxes.forEach(master => updateGroupSelectAllState(master.dataset.groupId));
+});
+</script>
+{% endblock %}

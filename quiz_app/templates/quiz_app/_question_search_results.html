@@ -1,0 +1,51 @@
+{# File: quiz_app/templates/quiz_app/_question_search_results.html #}
+
+<h3 class="h4 mt-4">Kết quả tìm kiếm ({{ page_obj.paginator.count }})</h3>
+<hr>
+
+{% for question in page_obj %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <a href="#" class="text-decoration-none text-dark" 
+               data-bs-toggle="modal" 
+               data-bs-target="#questionDetailModal"
+               data-question-id="{{ question.id }}">
+                <p class="card-text">{{ question.question_text|truncatewords:50 }}</p>
+            </a>
+            <p class="card-subtitle text-muted small mt-2">
+                Nhóm: {{ question.topic.group.group_name }} | Chủ đề: {{ question.topic.topic_name }} | Loại: {{ question.get_question_type_display }}
+            </p>
+        </div>
+    </div>
+{% empty %}
+    <div class="alert alert-info">Không tìm thấy câu hỏi nào phù hợp với tiêu chí của bạn.</div>
+{% endfor %}
+
+{# Khu vực phân trang #}
+{% if page_obj.has_previous or page_obj.has_next %}
+<nav aria-label="Page navigation" class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1&{{ query_params }}">&laquo; Đầu</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}&{{ query_params }}">Trước</a>
+            </li>
+        {% endif %}
+
+        <li class="page-item active" aria-current="page">
+            <span class="page-link">Trang {{ page_obj.number }} của {{ page_obj.paginator.num_pages }}</span>
+        </li>
+
+        {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}&{{ query_params }}">Sau</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}&{{ query_params }}">Cuối &raquo;</a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}

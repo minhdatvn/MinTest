@@ -1,0 +1,123 @@
+{% extends 'quiz_app/base.html' %}
+
+{% block title %}Báo cáo: {{ quiz.quiz_name }}{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <div>
+            <h1 class="h2">Báo cáo chi tiết: {{ quiz.quiz_name }}</h1>
+            <p class="text-muted">Phân tích kết quả các lượt làm bài cho đề thi này.</p>
+        </div>
+        <div>
+            <a href="{% url 'quiz_report_list' %}" class="btn btn-secondary">&laquo; Quay lại Tổng quan</a>
+        </div>
+    </div>
+
+    {# BIỂU ĐỒ PHÂN BỔ ĐIỂM SỐ #}
+    <h3 class="h4 mt-4">Phân bổ điểm số</h3>
+    <div class="card">
+        <div class="card-body">
+            <div style="max-width: 800px; margin: auto; height: 400px;">
+                <canvas id="scoreDistributionChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    {# BẢNG KẾT QUẢ CHI TIẾT #}
+    <h3 class="h4 mt-5">Chi tiết các lượt làm bài</h3>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Người làm bài</th>
+                    <th>Điểm số</th>
+                    <th>Thời gian làm bài</th>
+                    <th>Ngày hoàn thành</th>
+                    <th class="text-end">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for attempt in attempts %}
+                    <tr>
+                        <td>{{ attempt.user.username }}</td>
+                        <td><strong>{{ attempt.score_achieved|floatformat:2 }} / {{ attempt.quiz.scoring_scale_max }}</strong></td>
+                        <td>{{ attempt.duration }}</td>
+                        <td>{{ attempt.end_time|date:"H:i, d/m/Y" }}</td>
+                        <td class="text-end">
+                            <a href="{% url 'attempt_result' attempt.id %}" class="btn btn-sm btn-outline-primary">Xem lại bài làm</a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center p-4">Chưa có ai làm bài thi này.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+{# Thêm thư viện Chart.js từ CDN #}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('scoreDistributionChart');
+        if (ctx) {
+            // Lấy dữ liệu từ context mà Django đã truyền sang
+            const labels = JSON.parse('{{ chart_labels|safe }}');
+            const data = JSON.parse('{{ chart_data|safe }}');
+
+            new Chart(ctx, {
+                type: 'bar', // Loại biểu đồ cột
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Số lượt làm bài',
+                        data: data,
+                        backgroundColor: 'rgba(13, 110, 253, 0.5)',
+                        borderColor: 'rgba(13, 110, 253, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            },
+                            // === THÊM KHỐI NÀY CHO TRỤC DỌC (Y) ===
+                            title: {
+                                display: true,
+                                text: 'Số bài thi',
+                                font: {
+                                    size: 14
+                                }
+                            }
+                        },
+                        // === THÊM KHỐI NÀY CHO TRỤC NGANG (X) ===
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Kết quả (%)',
+                                font: {
+                                    size: 14
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    // Giữ cho biểu đồ không bị kéo giãn theo chiều cao
+                    maintainAspectRatio: false
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

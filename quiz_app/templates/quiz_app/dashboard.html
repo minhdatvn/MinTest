@@ -1,0 +1,58 @@
+{% extends 'quiz_app/base.html' %}
+
+{% block title %}Bảng điều khiển{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Bảng điều khiển</h1>
+    </div>
+
+    <p>Chào mừng, {{ user.username }}! Đây là tổng quan về dữ liệu trắc nghiệm của bạn.</p>
+
+    <div class="row">
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Nhóm Chủ đề</h5>
+                    <p class="card-text fs-2 fw-bold">{{ num_groups }}</p>
+                    <i class="bi bi-collection-fill fs-1 text-primary opacity-50"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Chủ đề</h5>
+                    <p class="card-text fs-2 fw-bold">{{ num_topics }}</p>
+                    <i class="bi bi-folder2-open fs-1 text-info opacity-50"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Câu hỏi</h5>
+                    <p class="card-text fs-2 fw-bold">{{ num_questions }}</p>
+                    <i class="bi bi-patch-question-fill fs-1 text-success opacity-50"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Lượt làm bài</h5>
+                    <p class="card-text fs-2 fw-bold">{{ num_attempts }}</p>
+                     <a href="{% url 'history_list' %}" class="text-decoration-none">
+                        <i class="bi bi-check-circle-fill fs-1 text-warning opacity-50"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-4">
+        <h3>Các lối tắt</h3>
+        <a href="{% url 'topic_group_list' %}" class="btn btn-lg btn-outline-primary">Quản lý Nội dung &raquo;</a>
+    </div>
+
+{% endblock %}

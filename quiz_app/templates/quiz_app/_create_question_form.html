@@ -1,0 +1,91 @@
+{# File: quiz_app/templates/quiz_app/_create_question_form.html #}
+
+{# Thêm id="createQuestionForm" và các thuộc tính htmx #}
+<form id="createQuestionForm" method="post" enctype="multipart/form-data"
+      hx-post="{% url 'create_question' topic.id %}"
+      hx-target="#createQuestionForm"
+      hx-swap="outerHTML">
+
+    {% csrf_token %}
+    <div class="mb-3">
+        <label for="{{ form.question_text.id_for_label }}" class="form-label">{{ form.question_text.label }}</label>
+        {{ form.question_text }}
+    </div>
+    <div class="mb-3">
+        <label for="{{ form.question_image.id_for_label }}" class="form-label">{{ form.question_image.label }}</label>
+        {{ form.question_image }}
+    </div>
+    <hr>
+    <h5>Các lựa chọn trả lời</h5>
+    {{ formset.management_form }}
+
+    {# Thêm khối hiển thị lỗi #}
+    <div id="formset-errors">
+        {% if formset.non_form_errors %}
+            <div class="alert alert-danger">
+                {{ formset.non_form_errors }}
+            </div>
+        {% endif %}
+    </div>
+
+    {# Thêm container và class để JS có thể tìm thấy #}
+    <div class="answer-forms-container">
+        {% for answer_form in formset %}
+        <div class="answer-form-row border rounded p-3 mb-3 {% if answer_form.DELETE.value %}is-hidden{% endif %}">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <strong>Đáp án <span class="answer-form-number">{{ forloop.counter }}</span></strong>
+                <button type="button" class="btn-close remove-answer-btn" aria-label="Xóa"></button>
+            </div>
+
+            <div class="mb-2">
+                <label for="{{ answer_form.answer_text.id_for_label }}" class="form-label small">Nội dung đáp án</label>
+                {{ answer_form.answer_text }}
+                {{ answer_form.answer_text.errors }}
+            </div>
+            <div class="mb-2">
+                <label for="{{ answer_form.answer_image.id_for_label }}" class="form-label small">Ảnh đáp án (tùy chọn)</label>
+                {{ answer_form.answer_image }}
+                {{ answer_form.answer_image.errors }}
+            </div>
+            <div class="form-check">
+                {{ answer_form.is_correct }}
+                <label class="form-check-label" for="{{ answer_form.is_correct.id_for_label }}">Đây là đáp án đúng</label>
+                {{ answer_form.is_correct.errors }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    {# Thêm template để sao chép form mới #}
+    <template class="answer-form-template">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong>Đáp án <span class="answer-form-number"></span></strong>
+            <button type="button" class="btn-close remove-answer-btn" aria-label="Xóa"></button>
+        </div>
+    
+        {# Dòng này đảm bảo các trường ẩn như ID, DELETE được đưa vào #}
+        {{ formset.empty_form.id }}
+        <div style="display: none;">{{ formset.empty_form.DELETE }}</div>
+    
+        <div class="mb-2">
+            <label for="id_{{ formset.empty_form.prefix }}-answer_text" class="form-label small">Nội dung đáp án</label>
+            {{ formset.empty_form.answer_text }}
+        </div>
+        <div class="mb-2">
+            <label for="id_{{ formset.empty_form.prefix }}-answer_image" class="form-label small">Ảnh đáp án (tùy chọn)</label>
+            {{ formset.empty_form.answer_image }}
+        </div>
+        <div class="form-check">
+            {{ formset.empty_form.is_correct }}
+            <label class="form-check-label" for="id_{{ formset.empty_form.prefix }}-is_correct">Đây là đáp án đúng</label>
+        </div>
+    </template>
+    
+    {# Thêm nút Thêm đáp án với class chung #}
+    <button type="button" class="btn btn-outline-primary mt-2 add-answer-btn"><i class="bi bi-plus-circle"></i> Thêm đáp án</button>
+
+    <div class="modal-footer mt-3">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
+        <button type="submit" class="btn btn-success">Lưu Câu hỏi</button>
+    </div>
+</form>
