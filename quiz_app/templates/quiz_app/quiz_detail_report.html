@@ -39,7 +39,13 @@
             <tbody>
                 {% for attempt in attempts %}
                     <tr>
-                        <td>{{ attempt.user.username }}</td>
+                        <td>
+                            {% if attempt.user %}
+                                {{ attempt.user.username }}
+                            {% else %}
+                                {{ attempt.guest_name }} (Khách)
+                            {% endif %}
+                        </td>
                         <td><strong>{{ attempt.score_achieved|floatformat:2 }} / {{ attempt.quiz.scoring_scale_max }}</strong></td>
                         <td>{{ attempt.duration }}</td>
                         <td>{{ attempt.end_time|date:"H:i, d/m/Y" }}</td>

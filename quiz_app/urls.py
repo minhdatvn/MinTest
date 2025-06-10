@@ -7,14 +7,12 @@ from django.contrib.auth import views as auth_views
 from . import views
 
 urlpatterns = [
-    path("", views.dashboard_view, name="dashboard"),  # Dashboard
+    path('', views.guest_homepage_view, name='guest_homepage'), # TRANG CHỦ MỚI CHO KHÁCH
+    path('guest/start/', views.guest_start_quiz, name='guest_start_quiz'), # Trang làm bài cho khách
+    path('dashboard/', views.dashboard_view, name='dashboard'), # Dashboard cho người đã đăng nhập    
     path("search/", views.question_search_view, name="question_search"),  # Tìm kiếm
-    path(
-        "groups/", views.topic_group_list_view, name="topic_group_list"
-    ),  # Nhóm chủ đề
-    path(
-        "import-all/", views.import_all_data_view, name="import_all_data"
-    ),  # Import nhóm chủ đề
+    path("groups/", views.topic_group_list_view, name="topic_group_list"),  # Nhóm chủ đề
+    path("import-all/", views.import_all_data_view, name="import_all_data"),  # Import nhóm chủ đề
     path(
         "export-all/", views.export_all_select_view, name="export_all_select"
     ),  # Export nhóm chủ đề

@@ -161,5 +161,5 @@ ADMIN_REORDER = ( #Sắp xếp thứ tự các mục trong trang Admin
 )
 
 LOGIN_URL = '/login/'
-LOGIN_REDIRECT_URL = '/'  # Chuyển về trang chủ sau khi đăng nhập thành công
+LOGIN_REDIRECT_URL = '/dashboard/'  # Chuyển về trang chủ sau khi đăng nhập thành công
 LOGOUT_REDIRECT_URL = '/' # Chuyển về trang chủ sau khi đăng xuất thành công

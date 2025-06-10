@@ -116,8 +116,12 @@
                             <strong>{{ user.username }}</strong>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-dark text-small shadow">
-                            {# Dùng url 'logout' mới của chúng ta #}
-                            <li><a class="dropdown-item" href="{% url 'logout' %}">Đăng xuất</a></li>
+                            <li>
+                                <form action="{% url 'logout' %}" method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="dropdown-item">Đăng xuất</button>
+                                </form>
+                            </li>
                         </ul>
                     {% else %}
                         {# Nếu user chưa đăng nhập #}

@@ -98,8 +98,9 @@ class Quiz(models.Model):
         related_name='enrolled_quizzes', # Giúp truy vấn ngược từ User -> Quiz
         blank=True
     )
-    # =======================================================
-
+    # === TRƯỜNG MỚI CHO TÍNH NĂNG CÔNG KHAI ===
+    is_public = models.BooleanField(default=False)
+    
     class Meta:
         verbose_name = "Đề thi"
         verbose_name_plural = "Đề thi"
@@ -131,8 +132,9 @@ class DynamicQuizRule(models.Model):
         return f"{self.question_count} câu từ '{self.topic.topic_name}' cho đề '{self.quiz.quiz_name}'"
 
 class UserAttempt(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     quiz = models.ForeignKey(Quiz, on_delete=models.SET_NULL, null=True)
+    guest_name = models.CharField(max_length=100, null=True, blank=True)
     start_time = models.DateTimeField(auto_now_add=True)
     end_time = models.DateTimeField(null=True, blank=True)
     score_achieved = models.FloatField(null=True, blank=True)
