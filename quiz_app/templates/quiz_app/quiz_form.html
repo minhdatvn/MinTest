@@ -152,57 +152,55 @@
 
 {% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('DEBUG: Script đã tải và DOM đã sẵn sàng.');
+document.addEventListener('DOMContentLoaded', function() {
+    // --- PHẦN 1: LOGIC CHUNG VÀ CHUYỂN ĐỔI PANEL ---
+    const mainForm = document.querySelector('form[method="post"]');
+    if (!mainForm) return;
 
-        const csrftoken = document.querySelector('form [name=csrfmiddlewaretoken]') 
-                    ? document.querySelector('form [name=csrfmiddlewaretoken]').value
-                    : document.querySelector('[name=csrfmiddlewaretoken]')?.value;
-        console.log('DEBUG: CSRF Token:', csrftoken ? 'Đã tìm thấy' : 'KHÔNG TÌM THẤY');
-                    
-        const deleteModalEl = document.getElementById('deleteQuizModal');
-        console.log('DEBUG: Đã tìm thấy phần tử modal xóa:', deleteModalEl);
+    const staticPanel = document.getElementById('static-quiz-panel');
+    const dynamicPanel = document.getElementById('dynamic-quiz-panel');
+    const quizTypeRadios = document.querySelectorAll('input[name="quiz_type"]');
+    const staticActions = document.getElementById('static-quiz-actions');
+    const dynamicActions = document.getElementById('dynamic-quiz-actions');
 
-        if (deleteModalEl && csrftoken) {
-            console.log('DEBUG: Modal và CSRF token hợp lệ, bắt đầu cài đặt logic xóa.');
-            const deleteModalInstance = new bootstrap.Modal(deleteModalEl);
-            let urlToDelete = '';
+    function togglePanels() {
+        // Đảm bảo các phần tử tồn tại trước khi thao tác
+        if (!staticPanel || !dynamicPanel || !staticActions || !dynamicActions) return;
 
-            document.body.addEventListener('click', function(event) {
-                console.log('DEBUG: Đã phát hiện một cú click trên trang.');
-                
-                const deleteButton = event.target.closest('.delete-quiz-btn');
-                if (deleteButton) {
-                    console.log('DEBUG: NÚT XÓA ĐÃ ĐƯỢC BẤM!', deleteButton);
-                    urlToDelete = deleteButton.dataset.deleteUrl;
-                    console.log('DEBUG: URL để xóa là:', urlToDelete);
+        const selectedType = document.querySelector('input[name="quiz_type"]:checked').value;
 
-                    console.log('DEBUG: Đang chuẩn bị hiển thị modal...');
-                    deleteModalInstance.show();
-                    console.log('DEBUG: Lệnh show() đã được gọi.');
-                }
-            });
-
-            const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
-            if(confirmDeleteBtn) {
-                console.log('DEBUG: Đã tìm thấy nút "Xác nhận Xóa", đang gắn sự kiện.');
-                confirmDeleteBtn.addEventListener('click', function() {
-                    // ... logic fetch không thay đổi ...
-                });
-            } else {
-                console.error('DEBUG: LỖI NGHIÊM TRỌNG - Không tìm thấy nút #confirmDeleteBtn');
-            }
-        } else {
-            console.error('DEBUG: LỖI - Không tìm thấy modal #deleteQuizModal hoặc CSRF token. Logic xóa sẽ không hoạt động.');
+        if (selectedType === 'static') {
+            // Dùng classList để thêm/xóa class 'd-none'
+            staticPanel.classList.remove('d-none');
+            dynamicPanel.classList.add('d-none');
+            staticActions.classList.remove('d-none');
+            dynamicActions.classList.add('d-none');
+        } else if (selectedType === 'dynamic') {
+            staticPanel.classList.add('d-none');
+            dynamicPanel.classList.remove('d-none');
+            staticActions.classList.add('d-none');
+            dynamicActions.classList.remove('d-none');
         }
-    });
+    }
 
-    // === PHẦN 2: LOGIC MỚI CHO BỘ ĐẾM VÀ CHECKBOX "CHỌN TẤT CẢ" ===
+    if (quizTypeRadios.length > 0) {
+        quizTypeRadios.forEach(radio => radio.addEventListener('change', togglePanels));
+        togglePanels();
+    }
+
+    const takeNowBtn = document.getElementById('take-now-btn');
+    if (takeNowBtn) {
+        takeNowBtn.addEventListener('click', function() {
+            mainForm.action = "{% url 'take_dynamic_quiz_now' %}";
+            mainForm.submit();
+        });
+    }
+           
+    // === PHẦN 2: LOGIC CHO BỘ ĐẾM VÀ CHECKBOX "CHỌN TẤT CẢ" ===
     const countSpan = document.getElementById('selected-question-count');
     const allQuestionCheckboxes = document.querySelectorAll('.question-checkbox');
     const groupSelectAllCheckboxes = document.querySelectorAll('.group-select-all');
 
-    // Hàm cập nhật bộ đếm
     function updateSelectedCount() {
         const selectedCount = document.querySelectorAll('.question-checkbox:checked').length;
         if (countSpan) {
@@ -210,50 +208,49 @@
         }
     }
 
-    // Hàm cập nhật trạng thái của checkbox "Chọn tất cả"
     function updateGroupSelectAllState(groupId) {
         const masterCheckbox = document.querySelector(`.group-select-all[data-group-id="${groupId}"]`);
         const childCheckboxes = document.querySelectorAll(`.question-checkbox[data-group-id="${groupId}"]`);
+        if (!masterCheckbox || childCheckboxes.length === 0) return;
+
         const total = childCheckboxes.length;
         const checkedCount = document.querySelectorAll(`.question-checkbox[data-group-id="${groupId}"]:checked`).length;
 
-        if (masterCheckbox) {
-            if (checkedCount === 0) {
-                masterCheckbox.checked = false;
-                masterCheckbox.indeterminate = false;
-            } else if (checkedCount === total) {
-                masterCheckbox.checked = true;
-                masterCheckbox.indeterminate = false;
-            } else {
-                masterCheckbox.checked = false;
-                masterCheckbox.indeterminate = true; // Trạng thái lửng lơ
-            }
+        if (checkedCount === 0) {
+            masterCheckbox.checked = false;
+            masterCheckbox.indeterminate = false;
+        } else if (checkedCount === total) {
+            masterCheckbox.checked = true;
+            masterCheckbox.indeterminate = false;
+        } else {
+            masterCheckbox.checked = false;
+            masterCheckbox.indeterminate = true;
         }
     }
 
-    // Gắn sự kiện cho checkbox "Chọn tất cả" của nhóm
     groupSelectAllCheckboxes.forEach(masterCheckbox => {
         masterCheckbox.addEventListener('change', function() {
             const groupId = this.dataset.groupId;
             const isChecked = this.checked;
             document.querySelectorAll(`.question-checkbox[data-group-id="${groupId}"]`)
                     .forEach(child => child.checked = isChecked);
-            updateSelectedCount(); // Cập nhật lại bộ đếm
+            updateSelectedCount();
         });
     });
 
-    // Gắn sự kiện cho từng checkbox câu hỏi
     allQuestionCheckboxes.forEach(childCheckbox => {
         childCheckbox.addEventListener('change', function() {
             const groupId = this.dataset.groupId;
-            updateGroupSelectAllState(groupId); // Cập nhật lại checkbox cha
-            updateSelectedCount(); // Cập nhật lại bộ đếm
+            updateGroupSelectAllState(groupId);
+            updateSelectedCount();
         });
     });
 
     // Khởi tạo trạng thái đúng khi tải trang
-    updateSelectedCount();
-    groupSelectAllCheckboxes.forEach(master => updateGroupSelectAllState(master.dataset.groupId));
+    if (staticPanel) {
+        updateSelectedCount();
+        groupSelectAllCheckboxes.forEach(master => updateGroupSelectAllState(master.dataset.groupId));
+    }
 });
 </script>
 {% endblock %}

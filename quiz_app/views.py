@@ -1412,7 +1412,7 @@ def import_all_data_view(request):
                 messages.error(request, message)
 
             # Chuyển về trang Bảng điều khiển
-            return redirect("topic_group_list_view")
+            return redirect("topic_group_list")
     else:
         form = UploadFileForm()
 
