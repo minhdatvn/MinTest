@@ -136,18 +136,11 @@
         </div>
         
         <nav class="navbar fixed-bottom quiz-nav-panel">
-            <div class="container-fluid">
-                
+            <div class="container-fluid">     
                 <button type="button" id="prev-question-btn" class="btn btn-primary" disabled>&laquo; Câu trước</button>
-
-                <div id="question-navigator" class="d-flex flex-wrap justify-content-center gap-2 mx-auto">
-                    {% for question in ordered_questions %}
-                        <div class="question-nav-box {% if forloop.first %}active{% endif %}" data-question-index="{{ forloop.counter0 }}">
-                            {{ forloop.counter }}
-                            <span class="flag-indicator"></span> {# <-- THÊM CHỈ BÁO VÀO ĐÂY #}
-                        </div>
-                    {% endfor %}
-                </div>
+                <button class="btn btn-outline-primary mx-auto" type="button" data-bs-toggle="offcanvas" data-bs-target="#questionListOffcanvas" aria-controls="questionListOffcanvas" id="open-nav-btn">
+                    Danh sách câu hỏi
+                </button>
 
                 <button type="button" id="next-question-btn" class="btn btn-primary"{% if quiz.questions.count <= 1 %} disabled{% endif %}>Câu tiếp &raquo;</button>
 
@@ -176,6 +169,25 @@
             </div>
         </div>
     </div>
+
+    {# === MODAL MỚI: OFF-CANVAS ĐỂ HIỂN THỊ DANH SÁCH CÂU HỎI === #}
+    <div class="offcanvas offcanvas-bottom" tabindex="-1" id="questionListOffcanvas" aria-labelledby="offcanvasLabel" style="height: 50vh;">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="offcanvasLabel">Danh sách câu hỏi</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            {# Toàn bộ khối điều hướng cũ sẽ được chuyển vào đây #}
+            <div id="question-navigator" class="d-flex flex-wrap justify-content-center gap-2">
+                {% for question in ordered_questions %}
+                    <div class="question-nav-box {% if forloop.first %}active{% endif %}" data-question-index="{{ forloop.counter0 }}">
+                        {{ forloop.counter }}
+                        <span class="flag-indicator"></span>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
 {% endblock %}
 
 {% block extra_js %}
@@ -184,84 +196,92 @@ document.addEventListener('DOMContentLoaded', function () {
     const quizForm = document.getElementById('quiz-form');
     if (!quizForm) return;
 
-    // TẠO MỘT KEY DUY NHẤT CHO LƯỢT LÀM BÀI NÀY
+    // --- KHAI BÁO BIẾN DÙNG CHUNG ---
     const storageKey = `quizAttempt_{{ attempt.id }}`;
+    const questionContainers = document.querySelectorAll('.question-container');
+    const navBoxes = document.querySelectorAll('.question-nav-box');
+    const nextBtn = document.getElementById('next-question-btn');
+    const prevBtn = document.getElementById('prev-question-btn');
+    const questionsWrapper = document.getElementById('questions-wrapper');
+    const totalQuestions = questionContainers.length;
+    let currentQuestionIndex = 0;
 
-    // --- CÁC HÀM LƯU, TẢI, VÀ XÓA TRẠNG THÁI ---
+    // --- CÁC HÀM XỬ LÝ CHÍNH ---
+    function showQuestion(index) {
+        if(index < 0 || index >= totalQuestions) return;
+        currentQuestionIndex = index;
+
+        questionContainers.forEach((container, i) => {
+            container.classList.toggle('d-none', i !== index);
+        });
+        navBoxes.forEach((box, i) => {
+            box.classList.toggle('active', i === index);
+        });
+
+        if(prevBtn) prevBtn.disabled = (index === 0);
+        if(nextBtn) nextBtn.disabled = (index === totalQuestions - 1);
+        
+        saveState();
+    }
+
     function saveState() {
-        const state = {
-            answers: {},
-            flags: [],
-            currentIndex: currentQuestionIndex
-        };
-
-        // Lưu các câu trả lời đã chọn
-        const answerInputs = document.querySelectorAll('.answer-input:checked');
-        answerInputs.forEach(input => {
+        const state = { answers: {}, flags: [], currentIndex: currentQuestionIndex };
+        document.querySelectorAll('.answer-input:checked').forEach(input => {
             const name = input.name;
-            if (!state.answers[name]) {
-                state.answers[name] = [];
-            }
+            if (!state.answers[name]) { state.answers[name] = []; }
             state.answers[name].push(input.value);
         });
-
-        // Lưu các câu hỏi đã đánh dấu
-        const flaggedButtons = document.querySelectorAll('.flag-btn.flagged');
-        flaggedButtons.forEach(btn => {
+        document.querySelectorAll('.flag-btn.flagged').forEach(btn => {
             state.flags.push(btn.dataset.questionIndex);
         });
-
         localStorage.setItem(storageKey, JSON.stringify(state));
-        console.log('State saved at', new Date().toLocaleTimeString());
     }
 
     function loadState() {
         const savedStateJSON = localStorage.getItem(storageKey);
-        if (!savedStateJSON) return;
-
+        if (!savedStateJSON) { showQuestion(0); return; }
         const state = JSON.parse(savedStateJSON);
-
-        // Khôi phục các câu trả lời
         for (const questionName in state.answers) {
-            const values = state.answers[questionName];
-            values.forEach(value => {
+            state.answers[questionName].forEach(value => {
                 const input = document.querySelector(`input[name="${questionName}"][value="${value}"]`);
-                if (input) input.checked = true;
+                if (input) {
+                    input.checked = true;
+                    const qIndex = input.dataset.questionIndex;
+                    const navBox = document.querySelector(`.question-nav-box[data-question-index="${qIndex}"]`);
+                    if(navBox) navBox.classList.add('answered');
+                }
             });
-            // Đánh dấu ô số là đã trả lời
-            const qIndex = document.querySelector(`input[name="${questionName}"]`).dataset.questionIndex;
-            const navBox = document.querySelector(`.question-nav-box[data-question-index="${qIndex}"]`);
-            if(navBox) navBox.classList.add('answered');
         }
-
-        // Khôi phục các câu hỏi đã đánh dấu
         state.flags.forEach(index => {
             const flagBtn = document.querySelector(`.flag-btn[data-question-index="${index}"]`);
             const navBox = document.querySelector(`.question-nav-box[data-question-index="${index}"]`);
             if (flagBtn) flagBtn.classList.add('flagged');
             if (navBox) navBox.classList.add('flagged');
         });
-        
-        // Di chuyển đến câu hỏi đang xem dở
         showQuestion(state.currentIndex || 0);
     }
 
-    function clearState() {
-        localStorage.removeItem(storageKey);
-        console.log('State cleared.');
-    }
+    function clearState() { localStorage.removeItem(storageKey); }
 
-    // --- ĐỒNG HỒ ĐẾM NGƯỢC (PHIÊN BẢN SERVER-DRIVEN) ---
+    // --- GẮN CÁC SỰ KIỆN ---
+    const beforeUnloadHandler = (event) => { event.preventDefault(); event.returnValue = ''; };
+    window.addEventListener('beforeunload', beforeUnloadHandler);
+
+    quizForm.addEventListener('submit', function() {
+        window.removeEventListener('beforeunload', beforeUnloadHandler);
+        clearState();
+    });
+
     const timerDisplay = document.getElementById('timer-display');
     if (timerDisplay) {
         let timeInSeconds = parseInt(timerDisplay.dataset.remainingSeconds, 10);
         if (!isNaN(timeInSeconds) && timeInSeconds > 0) {
-            let timerInterval = setInterval(function() {
+            let timerInterval = setInterval(() => {
                 if (timeInSeconds <= 0) {
                     clearInterval(timerInterval);
-                    timerDisplay.innerHTML = '<span class="text-danger">HẾT GIỜ!</span>';
                     alert('Đã hết thời gian làm bài! Bài của bạn sẽ được tự động nộp.');
-                    window.removeEventListener('beforeunload', beforeUnloadHandler); // Gỡ cảnh báo trước khi submit
+                    window.removeEventListener('beforeunload', beforeUnloadHandler);
+                    clearState();
                     quizForm.submit();
                     return;
                 }
@@ -269,88 +289,40 @@ document.addEventListener('DOMContentLoaded', function () {
                 const minutes = String(Math.floor(timeInSeconds / 60)).padStart(2, '0');
                 const seconds = String(timeInSeconds % 60).padStart(2, '0');
                 timerDisplay.innerHTML = `<i class="bi bi-clock"></i> ${minutes}:${seconds}`;
-                if (timeInSeconds < 60) {
-                    timerDisplay.classList.add('text-danger');
-                }
             }, 1000);
-        } else {
-            timerDisplay.innerHTML = '<i class="bi bi-clock-history"></i> Không giới hạn thời gian';
         }
-    }
-
-    // CẢNH BÁO KHI RỜI TRANG
-    const beforeUnloadHandler = (event) => { event.preventDefault(); event.returnValue = ''; };
-    window.addEventListener('beforeunload', beforeUnloadHandler);
-
-    quizForm.addEventListener('submit', function() {
-        window.removeEventListener('beforeunload', beforeUnloadHandler);
-        clearState(); // Xóa trạng thái khi nộp bài
-    });
-
-    // --- LOGIC ĐIỀU HƯỚNG CÂU HỎI (NEXT/PREV/JUMP) ---
-    const questionContainers = document.querySelectorAll('.question-container');
-    const navBoxes = document.querySelectorAll('.question-nav-box');
-    const nextBtn = document.getElementById('next-question-btn');
-    const prevBtn = document.getElementById('prev-question-btn');
-    const totalQuestions = questionContainers.length;
-    let currentQuestionIndex = 0;
-
-    function showQuestion(index) {
-        if(index < 0 || index >= totalQuestions) return;
-        currentQuestionIndex = index;
-
-        questionContainers.forEach(container => container.classList.add('d-none'));
-        if(questionContainers[index]) questionContainers[index].classList.remove('d-none');
-        
-        navBoxes.forEach(box => box.classList.remove('active'));
-        if(navBoxes[index]) navBoxes[index].classList.add('active');
-
-        if(prevBtn) prevBtn.disabled = (index === 0);
-        if(nextBtn) nextBtn.disabled = (index === totalQuestions - 1);
-        currentQuestionIndex = index;
-        saveState();
     }
 
     if(nextBtn) nextBtn.addEventListener('click', () => showQuestion(currentQuestionIndex + 1));
     if(prevBtn) prevBtn.addEventListener('click', () => showQuestion(currentQuestionIndex - 1));
-    
     navBoxes.forEach(box => {
         box.addEventListener('click', function () {
             showQuestion(parseInt(this.dataset.questionIndex, 10));
         });
     });
 
-
-    // --- LOGIC ĐÁNH DẤU CÂU TRẢ LỜI VÀ ĐÁNH DẤU XEM LẠI ---
-    const questionsWrapper = document.getElementById('questions-wrapper');
-    const questionNavigator = document.getElementById('question-navigator');
-    
-    if (questionsWrapper && questionNavigator) {
+    if (questionsWrapper) {
         questionsWrapper.addEventListener('click', function(event) {
-            // Xử lý nút Flag
-            const flagButton = event.target.closest('.flag-btn');
-            if (flagButton) {
+            let stateShouldBeSaved = false;
+            if (event.target.closest('.flag-btn')) {
+                const flagButton = event.target.closest('.flag-btn');
                 const questionIndex = flagButton.dataset.questionIndex;
-                const navBox = questionNavigator.querySelector(`.question-nav-box[data-question-index="${questionIndex}"]`);
+                const navBox = document.querySelector(`.question-nav-box[data-question-index="${questionIndex}"]`);
                 flagButton.classList.toggle('flagged');
                 if (navBox) navBox.classList.toggle('flagged');
-                stateChanged = true;
+                stateShouldBeSaved = true;
             }
-
-            // Xử lý khi chọn đáp án
-            const answerInput = event.target.closest('.answer-input');
-            if(answerInput){
+            if (event.target.closest('.answer-input')) {
+                const answerInput = event.target.closest('.answer-input');
                 const questionIndex = answerInput.dataset.questionIndex;
-                const navBox = questionNavigator.querySelector(`.question-nav-box[data-question-index="${questionIndex}"]`);
+                const navBox = document.querySelector(`.question-nav-box[data-question-index="${questionIndex}"]`);
                 if(navBox) navBox.classList.add('answered');
-                stateChanged = true;
+                stateShouldBeSaved = true;
             }
-            if(stateChanged) saveState();
+            if (stateShouldBeSaved) saveState();
         });
     }
 
-
-    // --- CẢI TIẾN 2: CẢNH BÁO KHI CÒN CÂU HỎI CHƯA TRẢ LỜI ---
     const submitConfirmModalEl = document.getElementById('submitConfirmModal');
     if (submitConfirmModalEl) {
         const submitConfirmModal = new bootstrap.Modal(submitConfirmModalEl);
@@ -360,27 +332,24 @@ document.addEventListener('DOMContentLoaded', function () {
         quizForm.addEventListener('submit', function(event) {
             let unansweredCount = 0;
             questionContainers.forEach(container => {
-                const inputs = container.querySelectorAll('input[type="radio"]:checked, input[type="checkbox"]:checked');
-                if (inputs.length === 0) {
+                if (!container.querySelector('input[type="radio"]:checked, input[type="checkbox"]:checked')) {
                     unansweredCount++;
                 }
             });
-
             if (unansweredCount > 0) {
                 event.preventDefault(); 
                 unansweredCountSpan.textContent = unansweredCount;
                 submitConfirmModal.show();
             }
         });
-
         if(confirmSubmitBtn) {
             confirmSubmitBtn.addEventListener('click', function() {
-                window.removeEventListener('beforeunload', beforeUnloadHandler); // Gỡ cảnh báo trước khi submit
-                clearState();
                 quizForm.submit();
             });
         }
     }
+
+    // --- KHỞI TẠO ---
     loadState();
 });
 </script>
