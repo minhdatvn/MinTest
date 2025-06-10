@@ -88,11 +88,16 @@
                                         <div class="accordion-body">
                                             {% for topic in group.topics_with_questions %}
                                                 <div class="topic-container mt-2">
-                                                    <h5>{{ topic.topic_name }}</h5>
+                                                    <h5>
+                                                        <input type="checkbox" class="form-check-input me-2 topic-select-all" 
+                                                            data-topic-id="{{ topic.id }}" 
+                                                            data-group-id="{{ group.id }}">
+                                                        {{ topic.topic_name }}
+                                                    </h5>
                                                     {% for question in topic.questions.all %}
                                                         <div class="form-check">
                                                             {# THAY ĐỔI 3: Thêm class và data-group-id cho từng câu hỏi #}
-                                                            <input class="form-check-input question-checkbox" type="checkbox" name="questions" value="{{ question.id }}" id="question-{{ question.id }}" data-group-id="{{ group.id }}">
+                                                            <input class="form-check-input question-checkbox" type="checkbox" name="questions" value="{{ question.id }}" id="question-{{ question.id }}" data-group-id="{{ group.id }}" data-topic-id="{{ topic.id }}">
                                                             <label class="form-check-label" for="question-{{ question.id }}">
                                                                 {{ question.question_text|truncatechars:100 }}
                                                             </label>
@@ -200,14 +205,36 @@ document.addEventListener('DOMContentLoaded', function() {
     const countSpan = document.getElementById('selected-question-count');
     const allQuestionCheckboxes = document.querySelectorAll('.question-checkbox');
     const groupSelectAllCheckboxes = document.querySelectorAll('.group-select-all');
+    const topicSelectAllCheckboxes = document.querySelectorAll('.topic-select-all');
 
+    // HÀM CẬP NHẬT BỘ ĐẾM (KHÔNG ĐỔI)
     function updateSelectedCount() {
         const selectedCount = document.querySelectorAll('.question-checkbox:checked').length;
-        if (countSpan) {
-            countSpan.textContent = selectedCount;
+        if (countSpan) countSpan.textContent = selectedCount;
+    }
+
+    // HÀM MỚI: Cập nhật trạng thái checkbox của CHỦ ĐỀ
+    function updateTopicSelectAllState(topicId) {
+        const masterCheckbox = document.querySelector(`.topic-select-all[data-topic-id="${topicId}"]`);
+        const childCheckboxes = document.querySelectorAll(`.question-checkbox[data-topic-id="${topicId}"]`);
+        if (!masterCheckbox || childCheckboxes.length === 0) return;
+
+        const total = childCheckboxes.length;
+        const checkedCount = document.querySelectorAll(`.question-checkbox[data-topic-id="${topicId}"]:checked`).length;
+
+        if (checkedCount === 0) {
+            masterCheckbox.checked = false;
+            masterCheckbox.indeterminate = false;
+        } else if (checkedCount === total) {
+            masterCheckbox.checked = true;
+            masterCheckbox.indeterminate = false;
+        } else {
+            masterCheckbox.checked = false;
+            masterCheckbox.indeterminate = true;
         }
     }
 
+    // HÀM CẬP NHẬT TRẠNG THÁI CHECKBOX CỦA NHÓM
     function updateGroupSelectAllState(groupId) {
         const masterCheckbox = document.querySelector(`.group-select-all[data-group-id="${groupId}"]`);
         const childCheckboxes = document.querySelectorAll(`.question-checkbox[data-group-id="${groupId}"]`);
@@ -228,20 +255,44 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // SỰ KIỆN KHI BẤM VÀO CHECKBOX "CHỌN TẤT CẢ" CỦA NHÓM (CẬP NHẬT)
     groupSelectAllCheckboxes.forEach(masterCheckbox => {
         masterCheckbox.addEventListener('change', function() {
             const groupId = this.dataset.groupId;
             const isChecked = this.checked;
+            // Chọn tất cả các câu hỏi con
             document.querySelectorAll(`.question-checkbox[data-group-id="${groupId}"]`)
                     .forEach(child => child.checked = isChecked);
+            // Cập nhật luôn trạng thái của các checkbox chủ đề con
+            document.querySelectorAll(`.topic-select-all[data-group-id="${groupId}"]`)
+                    .forEach(topicMaster => {
+                        topicMaster.checked = isChecked;
+                        topicMaster.indeterminate = false;
+                    });
             updateSelectedCount();
         });
     });
 
+    // SỰ KIỆN MỚI: KHI BẤM VÀO CHECKBOX "CHỌN TẤT CẢ" CỦA CHỦ ĐỀ
+    topicSelectAllCheckboxes.forEach(topicMasterCheckbox => {
+        topicMasterCheckbox.addEventListener('change', function() {
+            const topicId = this.dataset.topicId;
+            const groupId = this.dataset.groupId;
+            const isChecked = this.checked;
+            document.querySelectorAll(`.question-checkbox[data-topic-id="${topicId}"]`)
+                    .forEach(child => child.checked = isChecked);
+            updateSelectedCount();
+            updateGroupSelectAllState(groupId); // Cập nhật lại checkbox của nhóm cha
+        });
+    });
+
+    // SỰ KIỆN KHI BẤM VÀO TỪNG CÂU HỎI (CẬP NHẬT)
     allQuestionCheckboxes.forEach(childCheckbox => {
         childCheckbox.addEventListener('change', function() {
             const groupId = this.dataset.groupId;
-            updateGroupSelectAllState(groupId);
+            const topicId = this.dataset.topicId;
+            updateTopicSelectAllState(topicId); // Cập nhật checkbox chủ đề
+            updateGroupSelectAllState(groupId); // Cập nhật checkbox nhóm
             updateSelectedCount();
         });
     });
@@ -249,6 +300,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Khởi tạo trạng thái đúng khi tải trang
     if (staticPanel) {
         updateSelectedCount();
+        topicSelectAllCheckboxes.forEach(master => updateTopicSelectAllState(master.dataset.topicId));
         groupSelectAllCheckboxes.forEach(master => updateGroupSelectAllState(master.dataset.groupId));
     }
 });
