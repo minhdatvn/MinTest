@@ -1,5 +1,6 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
+*.pyc
 *.py[cod]
 *$py.class
 
@@ -187,9 +188,17 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
+# Virtual Environment
+venv/
+env/
+.env
+
 # Cursor
 #  Cursor is an AI-powered code editor. `.cursorignore` specifies files/directories to
 #  exclude from AI features like autocomplete and code analysis. Recommended for sensitive data
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# Django Static Files (sau khi chạy collectstatic)
+staticfiles/
