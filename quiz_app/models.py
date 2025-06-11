@@ -154,7 +154,7 @@ class UserAttempt(models.Model):
             delta = self.end_time - self.start_time
 
             # Chuyển đổi sang tổng số giây
-            total_seconds = int(delta.total_seconds())
+            total_seconds = round(delta.total_seconds())
 
             # Chuyển đổi thành phút và giây
             minutes = total_seconds // 60
