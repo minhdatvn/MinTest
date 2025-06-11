@@ -2,75 +2,114 @@
 {% block title %}Chào mừng đến với MinTest{% endblock %}
 
 {% block content %}
-<div class="text-center">
-    <h1 class="display-4">Chào mừng đến với MinTest</h1>
-    <p class="lead">Nền tảng tạo và làm bài thi trắc nghiệm trực tuyến</p>
-</div>
+<style>
+    /* CSS tùy chỉnh để trang chủ đẹp hơn */
+    .hero-section {
+        background-color: #f8f9fa;
+        padding: 4rem 0;
+        margin-bottom: 2rem;
+        border-radius: .75rem;
+    }
+    .action-card {
+        transition: transform .2s ease-in-out, box-shadow .2s ease-in-out;
+    }
+    .action-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+    }
+</style>
 
-<div class="row mt-5">
-    {# CỘT TRÁI: DÀNH CHO KHÁCH LÀM BÀI #}
-    <div class="col-md-7">
-        <h4>Các đề thi công khai</h4>
-        <p class="text-muted">Chọn một đề thi có sẵn để bắt đầu làm bài ngay không cần tài khoản.</p>
-        <div class="list-group">
-            {% for quiz in public_quizzes %}
-                <a href="#" class="list-group-item list-group-item-action take-public-quiz-btn" 
-                    data-bs-toggle="modal" 
-                    data-bs-target="#guestNameModal" 
-                    data-quiz-id="{{ quiz.id }}"
-                    data-quiz-name="{{ quiz.quiz_name }}">
-                    <div class="d-flex w-100 justify-content-between">
-                        <h5 class="mb-1">{{ quiz.quiz_name }}</h5>
-                        <small>{{ quiz.question_count }} câu hỏi</small>
-                    </div>
-                    <small>Thời gian: {{ quiz.time_limit_minutes }} phút.</small>
-                </a>
-            {% empty %}
-                <p>Hiện chưa có đề thi công khai nào.</p>
-            {% endfor %}
-        </div>
-        <hr class="my-4">
-        <h4>...hoặc tham gia bằng mã</h4>
-        <p class="text-muted">Nếu bạn có mã truy cập, hãy nhập mã và tên của bạn để bắt đầu.</p>
-        <form action="{% url 'guest_start_quiz' %}" method="post">
-            {% csrf_token %}
-            <div class="row g-2">
-                <div class="col-md">
-                    <label for="guest-name-input" class="form-label visually-hidden">Tên của bạn</label>
-                    <input type="text" name="guest_name" id="guest-name-input" class="form-control" placeholder="Nhập họ và tên của bạn..." required>
-                </div>
-                <div class="col-md">
-                    <label for="access-code-input" class="form-label visually-hidden">Mã truy cập</label>
-                    <input type="text" name="access_code" id="access-code-input" class="form-control" placeholder="Nhập mã truy cập..." required>
-                </div>
-                <div class="col-md-auto">
-                    <button type="submit" class="btn btn-primary w-100">Bắt đầu</button>
-                </div>
-            </div>
-        </form>
-    </div>
+<div class="container">
 
-    {# CỘT PHẢI: DÀNH CHO THÀNH VIÊN ĐĂNG NHẬP #}
-    <div class="col-md-5">
-        <div class="card">
-            <div class="card-body">
-                <h4 class="card-title text-center">Đăng nhập</h4>
-                <form action="{% url 'login' %}" method="post">
-                    {% csrf_token %}
-                    {{ login_form.as_p }}
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-success mt-3">Đăng nhập</button>
-                    </div>
-                </form>
-                <p class="text-center mt-3">
-                    Chưa có tài khoản? <a href="{% url 'signup' %}">Đăng ký ngay</a>
-                </p>
-            </div>
+    <div class="hero-section text-center">
+        <h1 class="display-4 fw-bold">Chào mừng đến với MinTest</h1>
+        <p class="lead col-lg-8 mx-auto">Nền tảng tạo, quản lý và thực hiện các bài thi trắc nghiệm trực tuyến một cách chuyên nghiệp và hiệu quả.</p>
+        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mt-4">
+            <a href="#guest-actions" class="btn btn-primary btn-lg px-4 gap-3">Bắt đầu ngay</a>
+            <a href="#member-login" class="btn btn-outline-secondary btn-lg px-4">Đăng nhập</a>
         </div>
     </div>
+
+    <div class="guest-actions-section my-5" id="guest-actions">
+        <h2 class="text-center mb-4">Dành cho Khách truy cập</h2>
+        <div class="row g-4">
+            
+            <div class="col-lg-6">
+                <div class="card h-100 shadow-sm action-card">
+                    <div class="card-body p-4">
+                        <h4 class="card-title"><i class="bi bi-card-checklist me-2"></i>Làm bài thi công khai</h4>
+                        <p class="card-text text-muted">Chọn một trong các đề thi có sẵn để bắt đầu làm bài ngay mà không cần tài khoản.</p>
+                        <div class="list-group">
+                            {% for quiz in public_quizzes %}
+                                <a href="#" class="list-group-item list-group-item-action take-public-quiz-btn" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#guestNameModal" 
+                                    data-quiz-id="{{ quiz.id }}"
+                                    data-quiz-name="{{ quiz.quiz_name }}">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">{{ quiz.quiz_name }}</h6>
+                                        <small>{{ quiz.question_count }} câu</small>
+                                    </div>
+                                    <small class="text-muted">Thời gian: {{ quiz.time_limit_minutes }} phút.</small>
+                                </a>
+                            {% empty %}
+                                <p class="text-center p-3">Hiện chưa có đề thi công khai nào.</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card h-100 shadow-sm action-card">
+                    <div class="card-body p-4">
+                        <h4 class="card-title"><i class="bi bi-key-fill me-2"></i>Tham gia bằng mã</h4>
+                        <p class="card-text text-muted">Nếu bạn có mã truy cập, hãy nhập mã và tên của bạn để bắt đầu làm bài thi riêng.</p>
+                        <form action="{% url 'guest_start_quiz' %}" method="post" class="mt-3">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="guest-name-input" class="form-label">Họ và tên của bạn</label>
+                                <input type="text" name="guest_name" id="guest-name-input" class="form-control" placeholder="Ví dụ: Nguyễn Văn An" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="access-code-input" class="form-label">Mã truy cập</label>
+                                <input type="text" name="access_code" id="access-code-input" class="form-control" placeholder="Nhập mã gồm 6 ký tự..." required>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-success">Vào thi</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="member-login-section my-5 py-5 bg-light rounded" id="member-login">
+        <div class="row">
+            <div class="col-lg-6 mx-auto">
+                <h2 class="text-center mb-4">Dành cho Thành viên</h2>
+                <div class="card">
+                    <div class="card-body p-4">
+                        <h4 class="card-title text-center">Đăng nhập</h4>
+                        <form action="{% url 'login' %}" method="post">
+                            {% csrf_token %}
+                            {{ login_form.as_p }}
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary mt-3">Đăng nhập</button>
+                            </div>
+                        </form>
+                        <p class="text-center mt-3 mb-0">
+                            Chưa có tài khoản? <a href="{% url 'signup' %}">Đăng ký ngay</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-{# === MODAL MỚI: YÊU CẦU KHÁCH NHẬP TÊN === #}
+
 <div class="modal fade" id="guestNameModal" tabindex="-1" aria-labelledby="guestNameModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -96,28 +135,27 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const guestNameModalEl = document.getElementById('guestNameModal');
-    if (guestNameModalEl) {
-        const quizIdInput = document.getElementById('guest-quiz-id-input');
-        const quizNameSpan = document.getElementById('modal-quiz-name');
+    {# Giữ nguyên phần JS để xử lý modal #}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const guestNameModalEl = document.getElementById('guestNameModal');
+            if (guestNameModalEl) {
+                const quizIdInput = document.getElementById('guest-quiz-id-input');
+                const quizNameSpan = document.getElementById('modal-quiz-name');
 
-        // Lắng nghe sự kiện click trên toàn bộ trang
-        document.body.addEventListener('click', function(event) {
-            const takeQuizButton = event.target.closest('.take-public-quiz-btn');
-            if (takeQuizButton) {
-                event.preventDefault(); // Ngăn thẻ <a> chuyển trang
-                
-                // Lấy thông tin từ nút được bấm và điền vào form trong modal
-                const quizId = takeQuizButton.dataset.quizId;
-                const quizName = takeQuizButton.dataset.quizName;
+                document.body.addEventListener('click', function(event) {
+                    const takeQuizButton = event.target.closest('.take-public-quiz-btn');
+                    if (takeQuizButton) {
+                        event.preventDefault();
+                        
+                        const quizId = takeQuizButton.dataset.quizId;
+                        const quizName = takeQuizButton.dataset.quizName;
 
-                quizIdInput.value = quizId;
-                quizNameSpan.textContent = quizName;
+                        quizIdInput.value = quizId;
+                        quizNameSpan.textContent = quizName;
+                    }
+                });
             }
         });
-    }
-});
-</script>
+    </script>
 {% endblock %}
