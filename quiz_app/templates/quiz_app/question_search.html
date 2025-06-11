@@ -1,10 +1,11 @@
 {% extends 'quiz_app/base.html' %}
+{% load static %}
 
 {% block title %}Tìm kiếm Câu hỏi{% endblock %}
 
 {% block content %}
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2">Tìm kiếm Câu hỏi Nâng cao</h1>
+        <h1 class="h2">Tìm kiếm Câu hỏi</h1>
     </div>
 
     <div class="card mb-4">
@@ -13,7 +14,9 @@
         </div>
         <div class="card-body">
             {# Form tìm kiếm sẽ gửi dữ liệu bằng phương thức GET #}
-            <form method="get" action="{% url 'question_search' %}">
+            <form method="get" id="questionSearchForm"
+                data-search-url="{% url 'question_search' %}" 
+                data-topics-url="{% url 'api_get_topics' %}">
                 <div class="row g-3">
                     <div class="col-md-12">
                         <label for="{{ form.keyword.id_for_label }}" class="form-label">{{ form.keyword.label }}</label>
@@ -64,142 +67,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // --- LOGIC DROPDOWN PHỤ THUỘC (PHIÊN BẢN SỬA LỖI) ---
-    const topicGroupSelect = document.getElementById('id_topic_group');
-    const topicSelect = document.getElementById('id_topic');
-
-    if (topicGroupSelect && topicSelect) {
-
-        // Hàm để reset và vô hiệu hóa dropdown Chủ đề
-        const resetTopicDropdown = () => {
-            topicSelect.innerHTML = '<option value="">Tất cả các Chủ đề</option>';
-            topicSelect.disabled = true;
-        };
-
-        // Vô hiệu hóa dropdown Chủ đề ngay khi tải trang
-        // nếu chưa có Nhóm chủ đề nào được chọn sẵn
-        if (!topicGroupSelect.value) {
-            resetTopicDropdown();
-        }
-
-        topicGroupSelect.addEventListener('change', function() {
-            const groupId = this.value;
-
-            // Nếu người dùng chọn "Tất cả các Nhóm", reset và vô hiệu hóa dropdown
-            if (!groupId) {
-                resetTopicDropdown();
-                return;
-            }
-
-            // Nếu chọn một nhóm cụ thể, kích hoạt dropdown và hiển thị trạng thái "Đang tải..."
-            topicSelect.disabled = false;
-            topicSelect.innerHTML = '<option value="">Đang tải chủ đề...</option>';
-
-            // Gọi API
-            const url = `{% url 'api_get_topics' %}?group_id=${groupId}`;
-            fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                    // Xóa trạng thái "Đang tải..."
-                    topicSelect.innerHTML = '';
-                    // Thêm lại lựa chọn mặc định
-                    const defaultOption = document.createElement('option');
-                    defaultOption.value = '';
-                    defaultOption.textContent = 'Tất cả các Chủ đề';
-                    topicSelect.appendChild(defaultOption);
-
-                    // Thêm các chủ đề lấy về từ API
-                    if (data.topics) {
-                        data.topics.forEach(function(topic) {
-                            const option = document.createElement('option');
-                            option.value = topic.id;
-                            option.textContent = topic.topic_name;
-                            topicSelect.appendChild(option);
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('Lỗi khi lấy danh sách chủ đề:', error);
-                    resetTopicDropdown(); // Reset nếu có lỗi
-                });
-        });
-    }
-
-    // --- LOGIC TÌM KIẾM VÀ PHÂN TRANG BẰNG AJAX (GIỮ NGUYÊN) ---
-    const searchForm = document.querySelector('form[method="get"]');
-    const resultsContainer = document.getElementById('search-results-container');
-
-    if (searchForm) {
-        searchForm.addEventListener('submit', function(event) {
-            event.preventDefault();
-            const formData = new FormData(searchForm);
-            const searchParams = new URLSearchParams(formData);
-            const queryString = searchParams.toString();
-            const url = `{% url 'question_search' %}?${queryString}`;
-
-            fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(response => response.text())
-            .then(html => {
-                resultsContainer.innerHTML = html;
-                history.pushState(null, '', url);
-            })
-            .catch(error => console.error('Lỗi khi tìm kiếm:', error));
-        });
-    }
-
-    resultsContainer.addEventListener('click', function(event) {
-        if (event.target.tagName === 'A' && event.target.classList.contains('page-link')) {
-            event.preventDefault();
-            const url = event.target.href;
-            fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(response => response.text())
-            .then(html => {
-                resultsContainer.innerHTML = html;
-                history.pushState(null, '', url);
-            });
-        }
-    });
-
-    // --- MODAL XEM CHI TIẾT CÂU HỎI ---
-    const detailModal = document.getElementById('questionDetailModal');
-    if (detailModal) {
-        detailModal.addEventListener('show.bs.modal', function(event) {
-            const link = event.relatedTarget;
-            const questionId = link.dataset.questionId;
-            const modalBody = document.getElementById('questionDetailModalBody');
-
-            modalBody.innerHTML = '<p class="text-center">Đang tải chi tiết...</p>';
-
-            fetch(`/api/question-details/${questionId}/`)
-                .then(response => response.json())
-                .then(data => {
-                    // DEBUG 1: In ra toàn bộ dữ liệu nhận được từ server
-                    console.log("--- DEBUG: Dữ liệu nhận được từ server ---");
-                    console.log(data);
-
-                    if (data.success) {
-                        let contentHtml = `<p><strong>${data.question_text}</strong></p><hr>`;
-                        contentHtml += '<ul class="list-group">';
-
-                        data.answers.forEach(answer => {
-                            const itemClass = answer.is_correct ? 'list-group-item list-group-item-success' : 'list-group-item';
-                            contentHtml += `<li class="${itemClass}">${answer.text}</li>`;
-                        });
-
-                        contentHtml += '</ul>';
-                        modalBody.innerHTML = contentHtml;
-                    } else {
-                        modalBody.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
-                    }
-                })
-                .catch(error => {
-                    console.error("Lỗi:", error);
-                    modalBody.innerHTML = '<div class="alert alert-danger">Không thể tải dữ liệu. Vui lòng thử lại.</div>';
-                });
-        });
-    }
-});
-</script>
+<script src="{% static 'quiz_app/js/question_search_logic.js' %}"></script>
 {% endblock %}
