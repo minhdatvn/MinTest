@@ -58,7 +58,7 @@
             <h2 class="mb-0">Kết quả chi tiết bài thi:</h2>
         </div>
         <div class="card-body">
-            {% for answered_question in attempt.answered_questions.all %}
+            {% for answered_question in ordered_answered_questions %}
                 <div class="result-question-container {% if not forloop.first %}d-none{% endif %}" id="result-question-{{ forloop.counter0 }}">
                     <div class="question-review">
                         <h4>Câu <span class="question-number-display">{{ forloop.counter }}</span>: {{ answered_question.question.question_text }}</h4>
@@ -104,7 +104,7 @@
             <button type="button" id="prev-result-btn" class="btn btn-outline-secondary" disabled>&laquo; Câu trước</button>
 
             <div id="result-navigator" class="d-flex flex-wrap justify-content-center gap-2 mx-auto">
-                {% for answered_question in attempt.answered_questions.all %}
+                {% for answered_question in ordered_answered_questions %}
                     <div class="result-nav-box 
                                 {% if answered_question.is_correct %}correct-result{% else %}incorrect-result{% endif %}
                                 {% if forloop.first %}active{% endif %}"

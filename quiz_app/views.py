@@ -785,84 +785,6 @@ def enroll_in_quiz(request):
     return redirect("quiz_list")
 
 
-# --- Hàm tạo Bài thi nhanh ---
-
-
-@login_required
-@transaction.atomic
-def take_dynamic_quiz_now(request):
-    if request.method != "POST":
-        return redirect("quiz_list")
-
-    form = QuizForm(request.POST, user=request.user)
-
-    # === THAY ĐỔI QUAN TRỌNG ===
-    # Cho phép trường 'quiz_name' có thể rỗng cho hành động này
-    form.fields["quiz_name"].required = False
-    # ==========================
-
-    if form.is_valid():
-        rules = []
-        for field_name, count in form.cleaned_data.items():
-            if field_name.startswith("dynamic_topic_") and count > 0:
-                topic_id = int(field_name.split("_")[-1])
-                rules.append({"topic_id": topic_id, "count": count})
-
-        if not rules:
-            messages.error(request, "Bạn phải chọn ít nhất một câu hỏi để làm bài.")
-            return redirect("create_quiz")
-
-        final_question_ids = []
-        for rule in rules:
-            try:
-                topic = Topic.objects.get(id=rule["topic_id"], user=request.user)
-                available_ids = list(
-                    Question.objects.filter(topic=topic).values_list("id", flat=True)
-                )
-                count = min(rule["count"], len(available_ids))
-                if count > 0:
-                    final_question_ids.extend(random.sample(available_ids, count))
-            except Topic.DoesNotExist:
-                continue
-
-        if not final_question_ids:
-            messages.error(
-                request, "Không tìm thấy câu hỏi nào hợp lệ cho các chủ đề đã chọn."
-            )
-            return redirect("create_quiz")
-
-        # Nếu người dùng không nhập tên, tạo tên mặc định
-        quiz_name = (
-            form.cleaned_data.get("quiz_name")
-            or f"Làm bài nhanh - {timezone.now().strftime('%H:%M')}"
-        )
-        random.shuffle(final_question_ids)
-
-        snapshot_quiz = Quiz.objects.create(
-            user=request.user,
-            quiz_name=quiz_name,
-            quiz_type="static",
-            time_limit_minutes=form.cleaned_data.get("time_limit_minutes", 15),
-            scoring_scale_max=form.cleaned_data.get("scoring_scale_max", 100),
-            is_snapshot=True,
-        )
-        snapshot_quiz.questions.set(final_question_ids)
-
-        new_attempt = UserAttempt.objects.create(
-            user=request.user,
-            quiz=snapshot_quiz,
-            question_order=json.dumps(final_question_ids),  # <-- Lưu thứ tự
-        )
-        return redirect("take_quiz", attempt_id=new_attempt.id)
-
-    # Nếu form không hợp lệ vì lý do khác
-    messages.error(
-        request,
-        f"Dữ liệu không hợp lệ. Vui lòng kiểm tra lại. Lỗi: {form.errors.as_text()}",
-    )
-    return redirect("create_quiz")
-
-
 # --- Hàm Bắt đầu bài thi ---
 @login_required
 @transaction.atomic
@@ -943,7 +865,10 @@ def take_quiz(request, attempt_id):
     # KIỂM TRA QUYỀN TRUY CẬP MỚI
     # Hoặc là chủ sở hữu, hoặc là khách đang làm đúng bài của mình
     is_owner = request.user.is_authenticated and attempt.user == request.user
-    is_guest_on_this_attempt = not request.user.is_authenticated and request.session.get('guest_attempt_id') == attempt.id
+    is_guest_on_this_attempt = (
+        not request.user.is_authenticated
+        and request.session.get("guest_attempt_id") == attempt.id
+    )
     if not (is_owner or is_guest_on_this_attempt):
         raise PermissionDenied("Bạn không có quyền truy cập vào bài thi này.")
     quiz = attempt.quiz
@@ -969,10 +894,7 @@ def take_quiz(request, attempt_id):
     # === KẾT THÚC LOGIC MỚI ===
 
     # === LOGIC XÁO TRỘN CÂU HỎI MỚI ===
-    # Lấy tất cả câu hỏi ra một danh sách
     questions_list = list(quiz.questions.all())
-    # Xáo trộn danh sách này
-    random.shuffle(questions_list)
     # =================================
 
     # === LOGIC MỚI: LẤY CÂU HỎI THEO THỨ TỰ ĐÃ LƯU ===
@@ -1024,23 +946,32 @@ def take_quiz(request, attempt_id):
 # --- Hàm thông báo kết quả bài thi ---
 def attempt_result(request, attempt_id):
     try:
-        attempt = UserAttempt.objects.select_related(
-            "quiz", "quiz__template_for", "user"
-        ).prefetch_related(
-            "answered_questions__question__answers",
-            "answered_questions__selected_answers",
-        ).get(id=attempt_id)
+        attempt = (
+            UserAttempt.objects.select_related("quiz", "quiz__template_for", "user")
+            .prefetch_related(
+                "answered_questions__question__answers",
+                "answered_questions__selected_answers",
+            )
+            .get(id=attempt_id)
+        )
     except UserAttempt.DoesNotExist:
         raise Http404("Không tìm thấy lượt làm bài này.")
 
     # === LOGIC KIỂM TRA QUYỀN TRUY CẬP TƯƠNG TỰ TAKE_QUIZ ===
     is_owner = request.user.is_authenticated and attempt.user == request.user
-    is_valid_guest = not request.user.is_authenticated and request.session.get('guest_attempt_id') == attempt.id
+    is_valid_guest = (
+        not request.user.is_authenticated
+        and request.session.get("guest_attempt_id") == attempt.id
+    )
 
     # Chỉ Creator của đề thi gốc mới có quyền xem kết quả của người khác
     is_quiz_creator = False
     if request.user.is_authenticated and attempt.quiz:
-        quiz_owner = attempt.quiz.template_for.user if attempt.quiz.is_snapshot else attempt.quiz.user
+        quiz_owner = (
+            attempt.quiz.template_for.user
+            if attempt.quiz.is_snapshot
+            else attempt.quiz.user
+        )
         if request.user == quiz_owner:
             is_quiz_creator = True
 
@@ -1048,7 +979,23 @@ def attempt_result(request, attempt_id):
         raise PermissionDenied("Bạn không có quyền xem kết quả của bài thi này.")
     # ==========================================================
 
-    context = {"attempt": attempt}
+    # === BẮT ĐẦU PHẦN LOGIC SẮP XẾP ===
+    # 1. Lấy lại thứ tự ID câu hỏi đã được lưu
+    ordered_ids = json.loads(attempt.question_order)
+    # 2. Tạo một biểu thức Case...When để sắp xếp các câu trả lời theo `question_id`
+    preserved_order = Case(
+        *[When(question_id=pk, then=pos) for pos, pk in enumerate(ordered_ids)]
+    )
+    # 3. Lấy queryset các câu trả lời và sắp xếp nó
+    ordered_answered_questions = attempt.answered_questions.all().order_by(
+        preserved_order
+    )
+    # === KẾT THÚC PHẦN SỬA ĐỔI LOGIC SẮP XẾP ===
+    context = {
+        "attempt": attempt,
+        # 4. Truyền queryset đã được sắp xếp vào context
+        "ordered_answered_questions": ordered_answered_questions,
+    }
     return render(request, "quiz_app/attempt_result.html", context)
 
 
@@ -1667,15 +1614,16 @@ def quiz_detail_report_view(request, quiz_id):
     }
     return render(request, "quiz_app/quiz_detail_report.html", context)
 
+
 # --- Trang Khách ---
 def guest_homepage_view(request):
     # Nếu người dùng đã đăng nhập, chuyển thẳng đến dashboard
     if request.user.is_authenticated:
-        return redirect('dashboard')
+        return redirect("dashboard")
 
     # Lấy tất cả các đề thi được đánh dấu là công khai
     public_quizzes = Quiz.objects.filter(is_public=True, is_snapshot=False).annotate(
-        question_count=Count('questions')
+        question_count=Count("questions")
     )
 
     # Chuẩn bị sẵn các form cho template
@@ -1683,93 +1631,105 @@ def guest_homepage_view(request):
     enroll_form = EnrollmentForm()
 
     context = {
-        'public_quizzes': public_quizzes,
-        'login_form': login_form,
-        'enroll_form': enroll_form,
+        "public_quizzes": public_quizzes,
+        "login_form": login_form,
+        "enroll_form": enroll_form,
     }
-    return render(request, 'quiz_app/guest_homepage.html', context)
+    return render(request, "quiz_app/guest_homepage.html", context)
+
 
 # --- Bài thi của Khách ---
 @transaction.atomic
 def guest_start_quiz(request):
-    if request.method != 'POST':
-        return redirect('guest_homepage')
+    if request.method != "POST":
+        return redirect("guest_homepage")
 
-    quiz_id = request.POST.get('quiz_id')
-    access_code = request.POST.get('access_code')
-    guest_name = request.POST.get('guest_name', 'Khách').strip()
+    quiz_id = request.POST.get("quiz_id")
+    access_code = request.POST.get("access_code")
+    guest_name = request.POST.get("guest_name", "Khách").strip()
 
     if not guest_name:
         messages.error(request, "Vui lòng nhập tên của bạn.")
-        return redirect('guest_homepage')
+        return redirect("guest_homepage")
 
     template_quiz = None
 
     # Tìm đề thi dựa trên ID (từ modal) hoặc mã truy cập (từ form)
     if quiz_id:
         try:
-            template_quiz = Quiz.objects.get(id=quiz_id, is_public=True, is_snapshot=False)
+            template_quiz = Quiz.objects.get(
+                id=quiz_id, is_public=True, is_snapshot=False
+            )
         except Quiz.DoesNotExist:
             raise Http404("Không tìm thấy đề thi công khai này.")
     elif access_code:
         try:
-            template_quiz = Quiz.objects.get(access_code=access_code.upper(), is_snapshot=False)
+            template_quiz = Quiz.objects.get(
+                access_code=access_code.upper(), is_snapshot=False
+            )
         except Quiz.DoesNotExist:
             messages.error(request, "Mã tham gia không hợp lệ. Vui lòng kiểm tra lại.")
-            return redirect('guest_homepage')
+            return redirect("guest_homepage")
     else:
         messages.error(request, "Không có thông tin đề thi. Vui lòng thử lại.")
-        return redirect('guest_homepage')
+        return redirect("guest_homepage")
 
     # ------ Bắt đầu logic tạo snapshot (tương tự view start_quiz) ------
     quiz_for_attempt = template_quiz
     question_ids_for_attempt = []
 
-    if template_quiz.quiz_type == 'static':
-        question_ids_for_attempt = list(template_quiz.questions.all().values_list('id', flat=True))
-    
-    elif template_quiz.quiz_type == 'dynamic':
+    if template_quiz.quiz_type == "static":
+        question_ids_for_attempt = list(
+            template_quiz.questions.all().values_list("id", flat=True)
+        )
+
+    elif template_quiz.quiz_type == "dynamic":
         rules = template_quiz.rules.all()
         final_question_ids = []
         for rule in rules:
-            available_ids = list(Question.objects.filter(topic=rule.topic).values_list('id', flat=True))
+            available_ids = list(
+                Question.objects.filter(topic=rule.topic).values_list("id", flat=True)
+            )
             count = min(rule.question_count, len(available_ids))
             if count > 0:
                 final_question_ids.extend(random.sample(available_ids, count))
-        
+
         if not final_question_ids:
-            messages.error(request, "Đề thi này hiện không có câu hỏi để làm bài. Vui lòng thử lại sau.")
-            return redirect('guest_homepage')
+            messages.error(
+                request,
+                "Đề thi này hiện không có câu hỏi để làm bài. Vui lòng thử lại sau.",
+            )
+            return redirect("guest_homepage")
 
         # Tạo snapshot
         snapshot_quiz = Quiz.objects.create(
-            user=template_quiz.user, # Snapshot vẫn thuộc về Creator
+            user=template_quiz.user,  # Snapshot vẫn thuộc về Creator
             quiz_name=f"{template_quiz.quiz_name} - Lượt thi của khách",
-            quiz_type='static',
+            quiz_type="static",
             time_limit_minutes=template_quiz.time_limit_minutes,
             scoring_scale_max=template_quiz.scoring_scale_max,
             is_snapshot=True,
-            template_for=template_quiz
+            template_for=template_quiz,
         )
         snapshot_quiz.questions.set(final_question_ids)
-        
+
         quiz_for_attempt = snapshot_quiz
         question_ids_for_attempt = final_question_ids
     # ------ Kết thúc logic tạo snapshot ------
 
     # Xáo trộn thứ tự câu hỏi
     random.shuffle(question_ids_for_attempt)
-    
+
     # Tạo một lượt làm bài mới với user=None và có guest_name
     new_attempt = UserAttempt.objects.create(
-        user=None, 
+        user=None,
         guest_name=guest_name,
         quiz=quiz_for_attempt,
-        question_order=json.dumps(question_ids_for_attempt)
+        question_order=json.dumps(question_ids_for_attempt),
     )
-    
+
     # Lưu attempt_id của khách vào session để xác thực ở trang làm bài
-    request.session['guest_attempt_id'] = new_attempt.id
-    
+    request.session["guest_attempt_id"] = new_attempt.id
+
     # Chuyển hướng đến trang làm bài
-    return redirect('take_quiz', attempt_id=new_attempt.id)
+    return redirect("take_quiz", attempt_id=new_attempt.id)

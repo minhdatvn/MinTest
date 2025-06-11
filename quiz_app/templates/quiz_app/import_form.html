@@ -50,7 +50,6 @@
                     <i class="bi bi-upload"></i> Bắt đầu Import
                 </button>
                 
-                {# THAY ĐỔI CHÍNH NẰM Ở ĐÂY: Thêm điều kiện `and topic.id` #}
                 {% if topic and topic.id %}
                     <a href="{% url 'question_list_in_topic' topic.id %}" class="btn btn-secondary">Hủy bỏ</a>
                 {% else %}

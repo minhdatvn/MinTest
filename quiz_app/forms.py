@@ -165,30 +165,16 @@ class BaseAnswerForm(forms.ModelForm):
     def clean(self):
         # Lấy prefix của form để biết nó là form-0, form-1, v.v.
         form_prefix = self.prefix
-        print(f"\n--- [FORMS.PY] Bắt đầu clean() cho form: {form_prefix} ---")
-
         # Chạy clean của lớp cha trước để Django thực hiện validation cơ bản
         cleaned_data = super().clean()
-        
-        # In ra các lỗi ban đầu (nếu có)
-        # Nếu answer_text rỗng, lỗi sẽ xuất hiện ở đây
-        if self.errors:
-            print(f"  Lỗi ban đầu của {form_prefix}: {self.errors.as_json()}")
-        else:
-            print(f"  {form_prefix} không có lỗi ban đầu.")
-
         # Kiểm tra xem cờ DELETE có được check hay không
         is_marked_for_delete = self.data.get(f'{form_prefix}-DELETE')
-        print(f"  {form_prefix} - Cờ DELETE được check: {bool(is_marked_for_delete)}")
-
         # Nếu form được đánh dấu xóa VÀ có lỗi (chứng tỏ nó bị rỗng)
         if is_marked_for_delete and self.errors:
-            print(f"  ==> {form_prefix} được xóa và có lỗi. TIẾN HÀNH XÓA LỖI ĐỂ FORM HỢP LỆ.")
             self.errors.clear()
             # Gọi lại super().clean() là cần thiết để làm mới cleaned_data sau khi xóa lỗi
             cleaned_data = super().clean()
         
-        print(f"--- [FORMS.PY] Kết thúc clean() cho form: {form_prefix} ---")
         return cleaned_data
 
 # FormSet cho việc TẠO câu hỏi

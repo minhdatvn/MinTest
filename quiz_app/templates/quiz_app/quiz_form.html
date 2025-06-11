@@ -77,10 +77,13 @@
                         <div class="question-checklist accordion" id="questionAccordion">
                             {% for group in topic_groups_with_questions %}
                                 <div class="accordion-item">
-                                    <h2 class="accordion-header" id="heading-group-{{ group.id }}">
-                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-group-{{ group.id }}">
-                                            {# THAY ĐỔI 2: Thêm checkbox "Chọn tất cả" cho nhóm #}
-                                            <input type="checkbox" class="form-check-input me-2 group-select-all" data-group-id="{{ group.id }}">
+                                    <h2 class="accordion-header d-flex align-items-center" id="heading-group-{{ group.id }}">
+                                        {# Bọc checkbox trong một div có padding để tạo khoảng đệm #}
+                                        <div class="p-3">
+                                            <input type="checkbox" class="form-check-input group-select-all" data-group-id="{{ group.id }}">
+                                        </div>
+                                        {# Button bây giờ chỉ chứa text và chiếm phần không gian còn lại #}
+                                        <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-group-{{ group.id }}">
                                             <strong>{{ group.group_name }}</strong>
                                         </button>
                                     </h2>
@@ -145,7 +148,6 @@
                     {# Bộ nút cho panel động #}
                     <div id="dynamic-quiz-actions" class="d-none">
                         <button type="submit" class="btn btn-success">Lưu Mẫu đề thi</button>
-                        <button type="button" class="btn btn-info ms-2" id="take-now-btn">Làm bài ngay</button>
                         <a href="{% url 'quiz_list' %}" class="btn btn-secondary ms-2">Hủy bỏ</a>
                     </div>
                 </div>
@@ -191,14 +193,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (quizTypeRadios.length > 0) {
         quizTypeRadios.forEach(radio => radio.addEventListener('change', togglePanels));
         togglePanels();
-    }
-
-    const takeNowBtn = document.getElementById('take-now-btn');
-    if (takeNowBtn) {
-        takeNowBtn.addEventListener('click', function() {
-            mainForm.action = "{% url 'take_dynamic_quiz_now' %}";
-            mainForm.submit();
-        });
     }
            
     // === PHẦN 2: LOGIC CHO BỘ ĐẾM VÀ CHECKBOX "CHỌN TẤT CẢ" ===
