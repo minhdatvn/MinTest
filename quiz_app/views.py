@@ -456,8 +456,6 @@ def update_topic(request, topic_id):
 
 
 # --- Hàm xóa Chủ đề ---
-
-
 @login_required
 @permission_required("quiz_app.delete_topic", raise_exception=True)
 def delete_topic(request, topic_id):
@@ -478,8 +476,6 @@ def delete_topic(request, topic_id):
 
 
 # --- Hàm tạo Câu hỏi ---
-
-
 @login_required
 @permission_required("quiz_app.add_question", raise_exception=True)
 @transaction.atomic
@@ -1188,8 +1184,6 @@ def _handle_excel_import(uploaded_file, target_topic):
 
 
 # --- Hàm import ---
-
-
 @login_required
 @permission_required("quiz_app.add_question", raise_exception=True)
 @transaction.atomic
@@ -1214,8 +1208,6 @@ def import_questions_to_topic(request, topic_id):
 
 
 # --- Hàm export ---
-
-
 @login_required
 @permission_required("quiz_app.view_question", raise_exception=True)
 def export_questions_from_topic(request, topic_id):
@@ -1560,10 +1552,6 @@ def get_question_details_view(request, question_id):
 def signup_view(request):
     if request.method == "POST":
         form = SignUpForm(request.POST)
-        # === THÊM DÒNG PRINT ĐỂ GỠ LỖI ===
-        if not form.is_valid():
-            print("DEBUG: Lỗi form đăng ký:", form.errors.as_json())
-        # =================================
         if form.is_valid():
             user = form.save()
             # Tự động thêm user mới vào nhóm 'Members'

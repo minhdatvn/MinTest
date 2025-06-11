@@ -145,7 +145,7 @@ class UserAttempt(models.Model):
         verbose_name_plural = "Lượt làm bài"
 
     def __str__(self):
-        return f"Attempt by {self.user.username} on {self.quiz.quiz_name if self.quiz else 'Deleted Qiz'}"
+        return f"Attempt by {self.user.username} on {self.quiz.quiz_name if self.quiz else 'Deleted Quiz'}"
     
     @property
     def duration(self):
