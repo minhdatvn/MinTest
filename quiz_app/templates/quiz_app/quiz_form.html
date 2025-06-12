@@ -157,5 +157,6 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ block.super }}
 <script src="{% static 'quiz_app/js/quiz_form_logic.js' %}"></script>
 {% endblock %}

@@ -192,5 +192,6 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ block.super }}
     <script src="{% static 'quiz_app/js/take_quiz.js' %}"></script>
 {% endblock %}

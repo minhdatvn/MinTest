@@ -13,7 +13,6 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.models import Group
-from django.contrib.auth.forms import AuthenticationForm
 from .models import (
     TopicGroup,
     Topic,
@@ -35,6 +34,7 @@ from .forms import (
     QuestionSearchForm,
     SignUpForm,
     EnrollmentForm,
+    CustomAuthenticationForm,
 )
 from io import BytesIO
 from datetime import timedelta
@@ -1627,7 +1627,7 @@ def guest_homepage_view(request):
     )
 
     # Chuẩn bị sẵn các form cho template
-    login_form = AuthenticationForm()
+    login_form = CustomAuthenticationForm()
     enroll_form = EnrollmentForm()
 
     context = {

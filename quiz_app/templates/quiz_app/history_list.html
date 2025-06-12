@@ -55,5 +55,6 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ block.super }}
 <script src="{% static 'quiz_app/js/history_list_logic.js' %}"></script>
 {% endblock %}

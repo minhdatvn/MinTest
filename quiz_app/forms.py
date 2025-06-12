@@ -2,7 +2,7 @@
 
 from django import forms
 from django.forms import BaseInlineFormSet, inlineformset_factory
-from django.contrib.auth.forms import UserCreationForm, User
+from django.contrib.auth.forms import UserCreationForm, User, AuthenticationForm
 from .models import TopicGroup, Topic, Question, Answer, Quiz
 
 # --- Form Tìm kiếm ---
@@ -306,3 +306,10 @@ class EnrollmentForm(forms.Form):
         max_length=10,
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nhập mã...'})
     )
+
+# --- Form Đăng nhập ---
+class CustomAuthenticationForm(AuthenticationForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Xóa thuộc tính autofocus khỏi widget của trường username một cách triệt để
+        self.fields['username'].widget.attrs.pop('autofocus', None)

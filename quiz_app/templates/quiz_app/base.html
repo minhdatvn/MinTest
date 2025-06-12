@@ -156,6 +156,31 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 {% block extra_js %}
+    <script>
+        console.log("DEBUG (base.html): Script trong base.html đã được tải.");
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("DEBUG (base.html): Sự kiện DOMContentLoaded đã kích hoạt.");
+            
+            document.body.addEventListener('shown.bs.modal', function(event) {
+                // Đây là dòng log quan trọng nhất
+                console.log("DEBUG: SỰ KIỆN 'shown.bs.modal' ĐÃ KÍCH HOẠT!");
+                
+                const modal = event.target;
+                console.log("DEBUG: Modal được mở là:", modal);
+
+                const firstInput = modal.querySelector('input:not([type="hidden"]), textarea, select');
+                console.log("DEBUG: Ô input đầu tiên tìm thấy:", firstInput);
+
+                if (firstInput) {
+                    console.log("DEBUG: Đang thực hiện .focus() trên ô input.");
+                    firstInput.focus();
+                } else {
+                    console.log("DEBUG: Không tìm thấy ô input nào để focus.");
+                }
+            });
+        });
+    </script>
 {% endblock %}
 </body>
 </html>

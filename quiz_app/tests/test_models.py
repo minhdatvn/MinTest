@@ -13,7 +13,7 @@ class UserAttemptModelTests(TestCase):
             time_limit_minutes=10
         )
 
-    def test_duration_property_calculates_correctly(self):
+    def test_duration_property_calculates_correctly(self): 
         start = timezone.now()
         end = start + timedelta(minutes=5, seconds=30)
         attempt = UserAttempt.objects.create(
