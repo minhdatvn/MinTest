@@ -71,7 +71,10 @@
             <div class="row align-items-center">
                 
                 <div class="col-md-4 text-center mb-3 mb-md-0">
-                    <canvas id="scoreChart" style="max-width: 180px; max-height: 180px; margin: auto;"></canvas>
+                    <div class="position-relative" style="max-width: 180px; max-height: 180px; margin: auto;">
+                        <canvas id="scoreChart"></canvas>
+                        <div id="chart-score-text" class="position-absolute top-50 start-50 translate-middle h2 fw-bold text-body-emphasis">0%</div>
+                    </div>
                 </div>
 
                 <div class="col-md-8">
@@ -95,26 +98,36 @@
                         
                         <p class="h3 fw-bold mt-3">Điểm của bạn: 
                             <span class="text-primary">{{ attempt.score_achieved|floatformat:2 }}</span> / {{ attempt.quiz.scoring_scale_max }}
-                            <span class="badge bg-info-subtle text-info-emphasis rounded-pill fs-6 align-middle ms-2">{{ percentage|floatformat:0 }}%</span>
                         </p>
                     {% endwith %}
                 </div>
             </div>
         </div>
 
-        <div class="text-center my-4">
-            <a href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'guest_homepage' %}{% endif %}" 
-            class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left"></i> 
-                {% if user.is_authenticated %}
-                    Quay lại Dashboard
-                {% else %}
-                    Quay lại Trang chủ
-                {% endif %}
-            </a>
+       <div class="text-center my-4">
+            <div class="mb-3">
+                <a href="{% url 'start_quiz' attempt.quiz.template_for.id|default:attempt.quiz.id %}" class="btn btn-primary d-inline-flex align-items-center" title="Làm lại bài thi này">
+                    <i class="bi bi-arrow-clockwise"></i>
+                    <span class="ms-1">Làm lại</span>
+                </a>
+
+                <a href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'guest_homepage' %}{% endif %}" class="btn btn-secondary ms-2" title="Quay lại trang chính">
+                    <i class="bi bi-house-door-fill"></i> Quay về Trang chủ
+                </a>
+            </div>
+
+            <div class="d-inline-flex align-items-center">
+                <span class="me-2">Hiển thị kết quả thi:</span>
+                <div class="btn-group" role="group" aria-label="Lọc kết quả">
+                    <button type="button" class="btn btn-sm btn-outline-secondary filter-btn" data-filter="all">Tất cả</button>
+                    <button type="button" class="btn btn-sm btn-outline-success filter-btn" data-filter="correct">Đúng</button>
+                    <button type="button" class="btn btn-sm btn-outline-danger filter-btn" data-filter="incorrect">Sai</button>
+                </div>
+            </div>
+
         </div>
-        
-    <div class="review-container card">
+
+    <div class="review-container card d-none">
         <div class="card-header">
             <h2 class="mb-0">Kết quả chi tiết bài thi:</h2>
         </div>
@@ -160,7 +173,7 @@
         </div>
     </div>
     
-    <nav class="navbar fixed-bottom result-nav-panel py-3">
+    <nav class="navbar fixed-bottom result-nav-panel py-3 d-none">
         <div class="container-fluid d-flex justify-content-between align-items-center">
             <button type="button" id="prev-result-btn" class="btn btn-primary d-inline-flex align-items-center" title="Câu trước" disabled>
                 <i class="bi bi-arrow-left-circle-fill fs-4"></i>
@@ -179,7 +192,7 @@
         </div>        
     </nav>
 
-    <div class="offcanvas offcanvas-bottom" tabindex="-1" id="resultNavOffcanvas" aria-labelledby="offcanvasLabel" style="height: 30vh;">
+    <div class="offcanvas offcanvas-bottom d-none" tabindex="-1" id="resultNavOffcanvas" aria-labelledby="offcanvasLabel" style="height: 30vh;">
         <div class="offcanvas-header">
             <h5 class="offcanvas-title" id="offcanvasLabel">Điều hướng kết quả</h5>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
@@ -244,21 +257,27 @@
 
         // --- PHẦN 2: LOGIC VẼ BIỂU ĐỒ (CODE MỚI) ---
         const ctx = document.getElementById('scoreChart');
-        if (ctx) {
-            // Lấy dữ liệu điểm từ context của Django
+        const scoreTextEl = document.getElementById('chart-score-text');
+
+        if (ctx && scoreTextEl) {
             const userScore = parseFloat('{{ attempt.score_achieved|default:0|stringformat:".2f" }}');
             const maxScore = parseFloat('{{ attempt.quiz.scoring_scale_max|default:100|stringformat:".2f" }}');
             const remainingScore = Math.max(0, maxScore - userScore);
+            // Tính toán % cuối cùng một lần duy nhất
+            const finalPercentage = maxScore > 0 ? (userScore / maxScore) * 100 : 0;
 
             new Chart(ctx, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Điểm đạt được', 'Phần còn lại'],
                     datasets: [{
                         data: [userScore, remainingScore],
-                        backgroundColor: ['#198754', '#e9ecef'],
-                        borderWidth: 2,
-                        borderColor: '#fff'
+                        backgroundColor: [
+                            '#198754', // Quay lại màu xanh lá cây đơn giản
+                            '#f8f9fa'  // Màu nền xám rất nhạt
+                        ],
+                        borderColor: 'var(--bs-body-bg)',
+                        borderWidth: 2
+                        // Bỏ các thuộc tính bo góc và gradient
                     }]
                 },
                 options: {
@@ -268,10 +287,93 @@
                     plugins: {
                         legend: { display: false },
                         tooltip: { enabled: false }
+                    },
+                    // --- PHẦN ANIMATION MỚI ĐỂ SỬA LỖI ĐẾM % ---
+                    animation: {
+                        duration: 1500, // Thời gian animation
+                        onProgress: function(animation) {
+                            // animation.currentStep là bước animation hiện tại
+                            // animation.numSteps là tổng số bước
+                            // Tỷ lệ hoàn thành animation (từ 0.0 đến 1.0)
+                            const progress = animation.currentStep / animation.numSteps;
+                            
+                            // Tính toán % để hiển thị dựa trên tỷ lệ đó
+                            const currentDisplayPercentage = progress * finalPercentage;
+                            
+                            scoreTextEl.textContent = `${Math.round(currentDisplayPercentage)}%`;
+                        },
+                        // Đảm bảo giá trị cuối cùng luôn chính xác tuyệt đối
+                        onComplete: function(animation) {
+                             scoreTextEl.textContent = `${Math.round(finalPercentage)}%`;
+                        }
                     }
                 }
             });
         }
+
+        // --- PHẦN 3: LOGIC LỌC KẾT QUẢ ---
+        const reviewContainer = document.querySelector('.review-container');
+        const navPanel = document.querySelector('.result-nav-panel');
+        const offcanvasPanel = document.getElementById('resultNavOffcanvas');
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        const allNavBoxes = document.querySelectorAll('.result-nav-box');
+
+        filterButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // === THÊM LOGIC MỚI ĐỂ HIỆN CÁC KHỐI BỊ ẨN ===
+                if (reviewContainer && reviewContainer.classList.contains('d-none')) {
+                    reviewContainer.classList.remove('d-none');
+                    navPanel.classList.remove('d-none');
+                    offcanvasPanel.classList.remove('d-none');
+                    reviewContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }        
+
+                // Cập nhật trạng thái active cho các nút lọc
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+
+                const filter = this.dataset.filter;
+                let firstVisibleQuestionIndex = -1;
+
+                allNavBoxes.forEach((navBox, index) => {
+                    const questionContainer = document.getElementById(`result-question-${index}`);
+                    let show = false; // Mặc định là ẩn
+
+                    // Kiểm tra điều kiện để hiển thị
+                    if (filter === 'all') {
+                        show = true;
+                    } else if (filter === 'correct' && navBox.classList.contains('correct-result')) {
+                        show = true;
+                    } else if (filter === 'incorrect' && navBox.classList.contains('incorrect-result')) {
+                        show = true;
+                    }
+                    
+                    // Ẩn/hiện cả ô số trong panel trượt và khối câu hỏi tương ứng
+                    navBox.style.display = show ? 'flex' : 'none';
+                    if (questionContainer) {
+                        // Lưu ý: khối câu hỏi vẫn được ẩn/hiện bằng d-none như cũ
+                        // nên chúng ta không thay đổi style.display của nó ở đây
+                        // mà sẽ dùng hàm showQuestion()
+                    }
+
+                    // Tìm câu hỏi đầu tiên được hiển thị trong bộ lọc
+                    if (show && firstVisibleQuestionIndex === -1) {
+                        firstVisibleQuestionIndex = index;
+                    }
+                });
+
+                // Tự động nhảy đến câu hỏi đầu tiên trong danh sách đã lọc
+                if (firstVisibleQuestionIndex !== -1) {
+                    showQuestion(firstVisibleQuestionIndex);
+                } else {
+                    // Nếu không có câu nào khớp (ví dụ: lọc câu sai nhưng làm đúng hết)
+                    // thì ẩn hết các container câu hỏi
+                    questionContainers.forEach(container => container.classList.add('d-none'));
+                    // Có thể hiển thị một thông báo ở đây nếu muốn
+                }
+            });
+        });        
+
     });
     </script>
 {% endblock %}
