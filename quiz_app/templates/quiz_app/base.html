@@ -52,6 +52,25 @@
             user-select: none;         /* Cú pháp chuẩn */
             cursor: default;           /* Đảm bảo con trỏ luôn là mũi tên trong vùng này */
         }
+
+        #backToTopBtn {
+            display: none; /* Ẩn theo mặc định */
+            position: fixed;
+            bottom: 20px;
+            right: 30px;
+            z-index: 99;
+            border: none;
+            outline: none;
+            background-color: #0d6efd;
+            color: white;
+            cursor: pointer;
+            padding: 10px 15px;
+            border-radius: 50%;
+            font-size: 18px;
+        }
+        #backToTopBtn:hover {
+            background-color: #0b5ed7;
+        }
     </style>
 </head>
 <body>
@@ -155,32 +174,46 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
 {% block extra_js %}
+    {{ block.super }} {# Giữ lại để có thói quen tốt khi kế thừa template #}
     <script>
-        console.log("DEBUG (base.html): Script trong base.html đã được tải.");
+    // Đợi cho toàn bộ trang được tải và sẵn sàng
+    document.addEventListener('DOMContentLoaded', function() {
 
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log("DEBUG (base.html): Sự kiện DOMContentLoaded đã kích hoạt.");
-            
-            document.body.addEventListener('shown.bs.modal', function(event) {
-                // Đây là dòng log quan trọng nhất
-                console.log("DEBUG: SỰ KIỆN 'shown.bs.modal' ĐÃ KÍCH HOẠT!");
-                
-                const modal = event.target;
-                console.log("DEBUG: Modal được mở là:", modal);
+        // --- LOGIC 1: TỰ ĐỘNG FOCUS CHO MODAL ---
+        document.body.addEventListener('shown.bs.modal', function(event) {
+            const modal = event.target;
+            const firstInput = modal.querySelector('input:not([type="hidden"]), textarea, select');
+            if (firstInput) {
+                firstInput.focus();
+            }
+        });
 
-                const firstInput = modal.querySelector('input:not([type="hidden"]), textarea, select');
-                console.log("DEBUG: Ô input đầu tiên tìm thấy:", firstInput);
-
-                if (firstInput) {
-                    console.log("DEBUG: Đang thực hiện .focus() trên ô input.");
-                    firstInput.focus();
+        // --- LOGIC 2: NÚT "CUỘN LÊN ĐẦU TRANG" ---
+        const backToTopButton = document.getElementById("backToTopBtn");
+        if (backToTopButton) {
+            // Lắng nghe sự kiện cuộn trang
+            window.addEventListener('scroll', function() {
+                if (window.scrollY > 200) {
+                    backToTopButton.style.display = "block";
                 } else {
-                    console.log("DEBUG: Không tìm thấy ô input nào để focus.");
+                    backToTopButton.style.display = "none";
                 }
             });
-        });
+
+            // Lắng nghe sự kiện click
+            backToTopButton.addEventListener('click', function() {
+                window.scrollTo({top: 0, behavior: 'smooth'});
+            });
+        }
+    });
     </script>
 {% endblock %}
+
+<button id="backToTopBtn" title="Lên đầu trang">
+    <i class="bi bi-arrow-up"></i>
+</button>
+
 </body>
 </html>
