@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}QuizApp{% endblock %}</title>
+    <title>{% block title %}MinTest{% endblock %}</title>
     <script>
         // IIFE (Immediately Invoked Function Expression) để tránh làm ô nhiễm scope toàn cục
         (function() {
@@ -38,7 +38,7 @@
 
         @media (max-width: 767.98px) {
           .sidebar {
-            top: 56px;
+            top: 40px;
           }
           .main-content {
             margin-left: 0;
@@ -55,13 +55,29 @@
             user-select: none;         /* Cú pháp chuẩn */
             cursor: default;           /* Đảm bảo con trỏ luôn là mũi tên trong vùng này */
         }
+        #backToTopBtn {
+            position: fixed;
+            bottom: 20px;
+            right: 30px;
+            z-index: 99;
+
+            /* Dùng opacity và visibility để có hiệu ứng mờ dần */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        #backToTopBtn.show {
+            opacity: 1;
+            visibility: visible;
+        }
     </style>
 </head>
 <body>
 
 <header class="navbar sticky-top bg-body-tertiary flex-md-nowrap p-0 shadow d-md-none">
     <div class="container-fluid">
-        <a class="navbar-brand col-md-3 col-lg-2 me-auto" href="#">QuizApp</a>
+        <a class="navbar-brand col-md-3 col-lg-2 me-auto" href="#">MinTest</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
         </button>
@@ -71,7 +87,7 @@
 <div class="container-fluid">
     <div class="row">
         <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-body-tertiary sidebar collapse">
-            <div class="position-sticky pt-3 d-flex flex-column" style="height: calc(100vh - 48px);">
+            <div class="position-sticky pt-0 pt-md-3">
                 <h2 class="text-center d-none d-md-block" style="font-size: 1.5rem;">MinTest</h2>
                 <hr class="d-none d-md-block">
                 <ul class="nav nav-pills flex-column mb-auto">
@@ -109,20 +125,15 @@
                            <i class="bi bi-clock-history"></i> Lịch sử làm bài thi
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" id="theme-toggle" title="Chuyển đổi giao diện">
+                            <i class="bi bi-moon-stars-fill" id="theme-icon-dark"></i>
+                            <i class="bi bi-sun-fill" id="theme-icon-light" style="display: none;"></i>
+                            <span id="theme-text">Chế độ tối</span>
+                        </a>
+                    </li>
                 </ul>
 
-                <div class="mt-auto"> {# mt-auto sẽ đẩy khối này xuống dưới cùng #}
-                    <ul class="nav nav-pills flex-column">
-                         <li class="nav-item">
-                            <a href="#" class="nav-link" id="theme-toggle" title="Chuyển đổi giao diện">
-                                <i class="bi bi-moon-stars-fill" id="theme-icon-dark"></i>
-                                <i class="bi bi-sun-fill" id="theme-icon-light" style="display: none;"></i>
-                                <span id="theme-text">Chế độ tối</span>
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-                
                 <hr>
                 <div class="dropdown p-3">
                     {% if user.is_authenticated %}
@@ -192,14 +203,15 @@
         if (backToTopButton) {
             // Lắng nghe sự kiện cuộn trang
             window.addEventListener('scroll', function() {
+                // Thay đổi logic để thêm/xóa class 'show'
                 if (window.scrollY > 200) {
-                    backToTopButton.style.display = "block";
+                    backToTopButton.classList.add('show');
                 } else {
-                    backToTopButton.style.display = "none";
+                    backToTopButton.classList.remove('show');
                 }
             });
 
-            // Lắng nghe sự kiện click
+            // Sự kiện click giữ nguyên, không đổi
             backToTopButton.addEventListener('click', function() {
                 window.scrollTo({top: 0, behavior: 'smooth'});
             });
