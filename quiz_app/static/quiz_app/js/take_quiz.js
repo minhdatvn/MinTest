@@ -13,7 +13,32 @@ document.addEventListener('DOMContentLoaded', function () {
     const totalQuestions = questionContainers.length;
     let currentQuestionIndex = 0;
 
+    // === CÁC BIẾN MỚI CHO PROGRESS BAR ===
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+
     // --- CÁC HÀM XỬ LÝ CHÍNH ---
+
+    // === HÀM MỚI ĐỂ CẬP NHẬT PROGRESS BAR ===
+    function updateProgressBar() {
+        if (!progressBar || !progressText) return;
+
+        // Dùng Set để chỉ đếm các câu hỏi duy nhất đã được trả lời
+        const answeredQuestions = new Set();
+        document.querySelectorAll('.answer-input:checked').forEach(input => {
+            answeredQuestions.add(input.name); // input.name là 'question_ID'
+        });
+        const answeredCount = answeredQuestions.size;
+        
+        // Tính toán phần trăm
+        const progressPercentage = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
+        
+        // Cập nhật giao diện thanh tiến độ và text
+        progressBar.style.width = `${progressPercentage}%`;
+        progressBar.setAttribute('aria-valuenow', progressPercentage);
+        progressText.textContent = `${answeredCount}/${totalQuestions}`;
+    }
+
     function showQuestion(index) {
         if(index < 0 || index >= totalQuestions) return;
         currentQuestionIndex = index;
@@ -46,7 +71,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function loadState() {
         const savedStateJSON = localStorage.getItem(storageKey);
-        if (!savedStateJSON) { showQuestion(0); return; }
+        if (!savedStateJSON) { 
+            showQuestion(0);
+            updateProgressBar(); // <-- CẬP NHẬT LẦN ĐẦU KHI CHƯA CÓ GÌ
+            return; 
+        }
         const state = JSON.parse(savedStateJSON);
         for (const questionName in state.answers) {
             state.answers[questionName].forEach(value => {
@@ -66,6 +95,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (navBox) navBox.classList.add('flagged');
         });
         showQuestion(state.currentIndex || 0);
+        updateProgressBar(); // <-- CẬP NHẬT SAU KHI TẢI LẠI TRẠNG THÁI
     }
 
     function clearState() { localStorage.removeItem(storageKey); }
@@ -79,6 +109,7 @@ document.addEventListener('DOMContentLoaded', function () {
         clearState();
     });
 
+    // --- Logic cho Timer ---
     const timerDisplay = document.getElementById('timer-display');
     if (timerDisplay) {
         let timeInSeconds = parseInt(timerDisplay.dataset.remainingSeconds, 10);
@@ -124,6 +155,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 const questionIndex = answerInput.dataset.questionIndex;
                 const navBox = document.querySelector(`.question-nav-box[data-question-index="${questionIndex}"]`);
                 if(navBox) navBox.classList.add('answered');
+                
+                updateProgressBar(); // <-- CẬP NHẬT KHI TRẢ LỜI CÂU HỎI
+                
                 stateShouldBeSaved = true;
             }
             if (stateShouldBeSaved) saveState();

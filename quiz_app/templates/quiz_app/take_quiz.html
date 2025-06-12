@@ -82,6 +82,17 @@
         </div>
     </div>
 
+    {# === Hiện tiến trình làm bài ProgressBar === #}
+    <div class="progress-container mb-4">
+        <div class="d-flex justify-content-between mb-1">
+            <strong class="text-muted">Tiến độ</strong>
+            <span id="progress-text" class="text-muted">0/{{ ordered_questions|length }}</span>
+        </div>
+        <div class="progress" style="height: 15px;">
+            <div id="progress-bar" class="progress-bar bg-success" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+    </div>
+
     <form method="post" action="{% url 'take_quiz' attempt.id %}" id="quiz-form" data-attempt-id="{{ attempt.id }}">
         {% csrf_token %}
 
