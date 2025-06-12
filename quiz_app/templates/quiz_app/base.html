@@ -75,6 +75,7 @@
 </head>
 <body>
 
+{% if user.is_authenticated %}
 <header class="navbar sticky-top bg-body-tertiary flex-md-nowrap p-0 shadow d-md-none">
     <div class="container-fluid">
         <a class="navbar-brand col-md-3 col-lg-2 me-auto" href="#">MinTest</a>
@@ -83,9 +84,11 @@
         </button>
     </div>
 </header>
+{% endif %}
 
 <div class="container-fluid">
     <div class="row">
+        {% if user.is_authenticated %}
         <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-body-tertiary sidebar collapse">
             <div class="position-sticky pt-0 pt-md-3">
                 <h2 class="text-center d-none d-md-block" style="font-size: 1.5rem;">MinTest</h2>
@@ -160,8 +163,9 @@
                 </div>
             </div>
         </nav>
+        {% endif %}
 
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+        <main class="{% if user.is_authenticated %}col-md-9 ms-sm-auto col-lg-10 px-md-4{% else %}col-12 mx-auto{% endif %}">
             {% if messages %}
                 <div class="container-fluid pt-3">
                     {% for message in messages %}
@@ -219,41 +223,39 @@
 
         // === LOGIC 3: NÚT CHUYỂN ĐỔI THEME ===
         const themeToggle = document.getElementById('theme-toggle');
-        const themeIconDark = document.getElementById('theme-icon-dark');
-        const themeIconLight = document.getElementById('theme-icon-light');
-        const themeText = document.getElementById('theme-text');
-        const rootHtml = document.documentElement;
 
-        // Hàm để cập nhật icon và chữ trên nút bấm
-        function updateToggleAppearance() {
-            const currentTheme = rootHtml.getAttribute('data-bs-theme');
-            if (currentTheme === 'dark') {
-                themeIconDark.style.display = 'none';
-                themeIconLight.style.display = 'inline-block';
-                themeText.textContent = 'Chế độ sáng';
-            } else {
-                themeIconDark.style.display = 'inline-block';
-                themeIconLight.style.display = 'none';
-                themeText.textContent = 'Chế độ tối';
-            }
-        }
-
-        // Cập nhật trạng thái nút bấm ngay khi tải trang
-        updateToggleAppearance();
-
-        // Gắn sự kiện click cho nút chuyển đổi
+        // Chỉ thực thi bất cứ thứ gì liên quan đến theme NẾU nút bấm tồn tại
         if (themeToggle) {
+            const themeIconDark = document.getElementById('theme-icon-dark');
+            const themeIconLight = document.getElementById('theme-icon-light');
+            const themeText = document.getElementById('theme-text');
+            const rootHtml = document.documentElement;
+
+            function updateToggleAppearance() {
+                // Logic của hàm không đổi
+                const currentTheme = rootHtml.getAttribute('data-bs-theme');
+                if (currentTheme === 'dark') {
+                    themeIconDark.style.display = 'none';
+                    themeIconLight.style.display = 'inline-block';
+                    themeText.textContent = 'Chế độ sáng';
+                } else {
+                    themeIconDark.style.display = 'inline-block';
+                    themeIconLight.style.display = 'none';
+                    themeText.textContent = 'Chế độ tối';
+                }
+            }
+
+            // Gọi hàm cập nhật lần đầu
+            updateToggleAppearance();
+
+            // Gắn sự kiện click
             themeToggle.addEventListener('click', function(e) {
                 e.preventDefault();
-                // Lấy theme hiện tại và chuyển sang theme ngược lại
                 const currentTheme = rootHtml.getAttribute('data-bs-theme');
                 const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-                
-                // Cập nhật thuộc tính trên thẻ <html>
+
                 rootHtml.setAttribute('data-bs-theme', newTheme);
-                // Lưu lựa chọn mới vào localStorage
                 localStorage.setItem('theme', newTheme);
-                // Cập nhật lại giao diện nút bấm
                 updateToggleAppearance();
             });
         }

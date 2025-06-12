@@ -75,12 +75,22 @@
             border-color: #ffc107; /* Màu vàng cho cờ có thể giữ nguyên */
             border-width: 4px;
         }
+        #timer-display {
+            min-width: 80px; /* Đặt chiều rộng tối thiểu */
+            text-align: right; /* Căn phải để số trông đẹp hơn khi co giãn */
+        }
     </style>
 
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">{{ quiz.quiz_name }}</h1>
-        <div class="h4" id="timer-display" data-remaining-seconds="{{ remaining_seconds }}">
-            {# JavaScript sẽ điền thời gian vào đây #}
+
+        <div class="d-flex align-items-center">
+            <div class="h4 mb-0 me-3" id="timer-display" data-remaining-seconds="{{ remaining_seconds }}">
+                {# JavaScript sẽ điền thời gian vào đây #}
+            </div>
+            <button type="submit" form="quiz-form" class="btn btn-success fw-bold" title="Nộp bài">
+                NỘP BÀI
+            </button>
         </div>
     </div>
 
@@ -150,15 +160,21 @@
         </div>
         
         <nav class="navbar fixed-bottom quiz-nav-panel">
-            <div class="container-fluid">     
-                <button type="button" id="prev-question-btn" class="btn btn-primary" disabled>&laquo; Câu trước</button>
-                <button class="btn btn-outline-primary mx-auto" type="button" data-bs-toggle="offcanvas" data-bs-target="#questionListOffcanvas" aria-controls="questionListOffcanvas" id="open-nav-btn">
-                    Danh sách câu hỏi
+            <div class="container-fluid d-flex justify-content-between">
+                <button type="button" id="prev-question-btn" class="btn btn-primary d-inline-flex align-items-center" title="Câu trước" disabled>
+                    <i class="bi bi-arrow-left-circle-fill fs-4"></i>
+                    <span class="d-none d-sm-inline ms-2">Câu trước</span>
                 </button>
 
-                <button type="button" id="next-question-btn" class="btn btn-primary"{% if quiz.questions.count <= 1 %} disabled{% endif %}>Câu tiếp &raquo;</button>
+                <button class="btn btn-outline-secondary d-inline-flex align-items-center" type="button" data-bs-toggle="offcanvas" data-bs-target="#questionListOffcanvas" aria-controls="questionListOffcanvas" id="open-nav-btn" title="Danh sách câu hỏi">
+                    <i class="bi bi-list-task fs-4"></i>
+                    <span class="d-none d-sm-inline ms-1">Danh sách</span>
+                </button>
 
-                <button type="submit" class="btn btn-success ms-4">NỘP BÀI</button>
+                <button type="button" id="next-question-btn" class="btn btn-primary d-inline-flex align-items-center" title="Câu tiếp">
+                    <span class="d-none d-sm-inline me-2">Câu tiếp</span>
+                    <i class="bi bi-arrow-right-circle-fill fs-4"></i>
+                </button>
             </div>
         </nav>
     </form>

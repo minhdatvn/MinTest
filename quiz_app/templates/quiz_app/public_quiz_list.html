@@ -81,3 +81,31 @@
         </div>
     </div>
 {% endblock %}
+
+{% block extra_js %}
+    {{ block.super }}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const guestNameModalEl = document.getElementById('guestNameModal');
+        if (guestNameModalEl) {
+            const quizIdInput = document.getElementById('guest-quiz-id-input');
+            const quizNameSpan = document.getElementById('modal-quiz-name');
+
+            // Lắng nghe sự kiện click trên toàn bộ trang để bắt các nút .take-public-quiz-btn
+            document.body.addEventListener('click', function(event) {
+                const takeQuizButton = event.target.closest('.take-public-quiz-btn');
+                if (takeQuizButton) {
+                    event.preventDefault(); // Ngăn thẻ <a> chuyển trang
+
+                    const quizId = takeQuizButton.dataset.quizId;
+                    const quizName = takeQuizButton.dataset.quizName;
+
+                    // Điền dữ liệu vào form trong modal
+                    if (quizIdInput) quizIdInput.value = quizId;
+                    if (quizNameSpan) quizNameSpan.textContent = quizName;
+                }
+            });
+        }
+    });
+    </script>
+{% endblock %}

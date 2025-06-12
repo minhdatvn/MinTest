@@ -90,7 +90,7 @@
                             <p class="lead">Hãy xem lại các câu trả lời và thử sức lại lần nữa để cải thiện điểm số.</p>
                         {% else %}
                             <h4 class="text-warning fw-bold"><i class="bi bi-tencent-qq me-2"></i>Chắc phải hên lắm mới xui được như vậy!</h4>
-                            <p class="lead">Xác suất được điểm 0 còn khó hơn điểm 100. Bạn đã làm được một điều không tưởng!</p>
+                            <p class="lead">Xác suất được điểm 0 còn thấp hơn điểm 100. Bạn đã làm được một điều không tưởng!</p>
                     {% endif %}
                         
                         <p class="h3 fw-bold mt-3">Điểm của bạn: 
@@ -99,11 +99,21 @@
                         </p>
                     {% endwith %}
                 </div>
-
             </div>
         </div>
-    </div>
 
+        <div class="text-center my-4">
+            <a href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'guest_homepage' %}{% endif %}" 
+            class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> 
+                {% if user.is_authenticated %}
+                    Quay lại Dashboard
+                {% else %}
+                    Quay lại Trang chủ
+                {% endif %}
+            </a>
+        </div>
+        
     <div class="review-container card">
         <div class="card-header">
             <h2 class="mb-0">Kết quả chi tiết bài thi:</h2>
@@ -151,25 +161,41 @@
     </div>
     
     <nav class="navbar fixed-bottom result-nav-panel py-3">
-        <div class="container-fluid">
-            <button type="button" id="prev-result-btn" class="btn btn-outline-secondary" disabled>&laquo; Câu trước</button>
+        <div class="container-fluid d-flex justify-content-between align-items-center">
+            <button type="button" id="prev-result-btn" class="btn btn-primary d-inline-flex align-items-center" title="Câu trước" disabled>
+                <i class="bi bi-arrow-left-circle-fill fs-4"></i>
+                <span class="d-none d-sm-inline ms-2">Câu trước</span>
+            </button>
 
+            <button class="btn btn-outline-secondary d-inline-flex align-items-center" type="button" data-bs-toggle="offcanvas" data-bs-target="#resultNavOffcanvas" aria-controls="resultNavOffcanvas" title="Danh sách câu hỏi">
+                <i class="bi bi-list-task fs-4"></i>
+                <span class="d-none d-sm-inline ms-1">Danh sách</span>
+            </button>
+
+            <button type="button" id="next-result-btn" class="btn btn-primary d-inline-flex align-items-center" title="Câu tiếp">
+                <span class="d-none d-sm-inline me-2">Câu tiếp</span>
+                <i class="bi bi-arrow-right-circle-fill fs-4"></i>
+            </button>
+        </div>        
+    </nav>
+
+    <div class="offcanvas offcanvas-bottom" tabindex="-1" id="resultNavOffcanvas" aria-labelledby="offcanvasLabel" style="height: 30vh;">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="offcanvasLabel">Điều hướng kết quả</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
             <div id="result-navigator" class="d-flex flex-wrap justify-content-center gap-2 mx-auto">
                 {% for answered_question in ordered_answered_questions %}
-                    <div class="result-nav-box 
-                                {% if answered_question.is_correct %}correct-result{% else %}incorrect-result{% endif %}
-                                {% if forloop.first %}active{% endif %}"
+                    <div class="result-nav-box {% if answered_question.is_correct %}correct-result{% else %}incorrect-result{% endif %} {% if forloop.first %}active{% endif %}"
                          data-question-index="{{ forloop.counter0 }}">
                         {{ forloop.counter }}
                     </div>
                 {% endfor %}
             </div>
-
-            <button type="button" id="next-result-btn" class="btn btn-outline-primary"{% if attempt.answered_questions.all|length <= 1 %} disabled{% endif %}>Câu tiếp &raquo;</button>
-
-            <a href="{% url 'history_list' %}" class="btn btn-secondary ms-4">Quay lại Lịch sử</a>
         </div>
-    </nav>
+    </div>
+
 {% endblock %}
 
 {% block extra_js %}
