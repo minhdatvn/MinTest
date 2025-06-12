@@ -1,9 +1,19 @@
 <!DOCTYPE html>
+<html lang="vi" data-bs-theme="light"></html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}QuizApp{% endblock %}</title>
+    <script>
+        // IIFE (Immediately Invoked Function Expression) để tránh làm ô nhiễm scope toàn cục
+        (function() {
+            // Lấy theme đã lưu từ localStorage, nếu không có thì mặc định là 'light'
+            const theme = localStorage.getItem('theme') || 'light';
+            // Set thuộc tính data-bs-theme cho thẻ <html>
+            document.documentElement.setAttribute('data-bs-theme', theme);
+        })();
+    </script>
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
@@ -11,7 +21,7 @@
 
     <style>
         body {
-            background-color: #f8f9fa;
+            background-color: var(--bs-body-bg);
         }
         .sidebar {
             position: fixed;
@@ -34,13 +44,6 @@
             margin-left: 0;
           }
         }
-
-        .nav-link {
-            color: #adb5bd;
-        }
-        .nav-link:hover, .nav-link.active {
-            color: white;
-        }
         .nav-link .bi {
             margin-right: 8px;
         }
@@ -52,30 +55,11 @@
             user-select: none;         /* Cú pháp chuẩn */
             cursor: default;           /* Đảm bảo con trỏ luôn là mũi tên trong vùng này */
         }
-
-        #backToTopBtn {
-            display: none; /* Ẩn theo mặc định */
-            position: fixed;
-            bottom: 20px;
-            right: 30px;
-            z-index: 99;
-            border: none;
-            outline: none;
-            background-color: #0d6efd;
-            color: white;
-            cursor: pointer;
-            padding: 10px 15px;
-            border-radius: 50%;
-            font-size: 18px;
-        }
-        #backToTopBtn:hover {
-            background-color: #0b5ed7;
-        }
     </style>
 </head>
 <body>
 
-<header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow d-md-none">
+<header class="navbar sticky-top bg-body-tertiary flex-md-nowrap p-0 shadow d-md-none">
     <div class="container-fluid">
         <a class="navbar-brand col-md-3 col-lg-2 me-auto" href="#">QuizApp</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
@@ -86,10 +70,10 @@
 
 <div class="container-fluid">
     <div class="row">
-        <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-dark sidebar collapse">
-            <div class="position-sticky pt-3">
-                <h2 class="text-white text-center d-none d-md-block" style="font-size: 1.5rem;">QuizApp</h2>
-                <hr class="text-white d-none d-md-block">
+        <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-body-tertiary sidebar collapse">
+            <div class="position-sticky pt-3 d-flex flex-column" style="height: calc(100vh - 48px);">
+                <h2 class="text-center d-none d-md-block" style="font-size: 1.5rem;">MinTest</h2>
+                <hr class="d-none d-md-block">
                 <ul class="nav nav-pills flex-column mb-auto">
                     <li class="nav-item">
                         <a href="{% url 'dashboard' %}" class="nav-link">
@@ -126,15 +110,28 @@
                         </a>
                     </li>
                 </ul>
-                <hr class="text-white">
+
+                <div class="mt-auto"> {# mt-auto sẽ đẩy khối này xuống dưới cùng #}
+                    <ul class="nav nav-pills flex-column">
+                         <li class="nav-item">
+                            <a href="#" class="nav-link" id="theme-toggle" title="Chuyển đổi giao diện">
+                                <i class="bi bi-moon-stars-fill" id="theme-icon-dark"></i>
+                                <i class="bi bi-sun-fill" id="theme-icon-light" style="display: none;"></i>
+                                <span id="theme-text">Chế độ tối</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <hr>
                 <div class="dropdown p-3">
                     {% if user.is_authenticated %}
                         {# Nếu user đã đăng nhập #}
-                        <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a href="#" class="d-flex align-items-center text-decoration-none dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-person-circle me-2"></i>
                             <strong>{{ user.username }}</strong>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-dark text-small shadow">
+                        <ul class="dropdown-menu text-small shadow">
                             <li>
                                 <form action="{% url 'logout' %}" method="post" class="d-inline">
                                     {% csrf_token %}
@@ -144,7 +141,7 @@
                         </ul>
                     {% else %}
                         {# Nếu user chưa đăng nhập #}
-                        <a href="{% url 'login' %}" class="d-flex align-items-center text-white text-decoration-none">
+                        <a href="{% url 'login' %}" class="d-flex align-items-center text-decoration-none">
                             <i class="bi bi-box-arrow-in-right me-2"></i>
                             <strong>Đăng nhập</strong>
                         </a>
@@ -207,11 +204,52 @@
                 window.scrollTo({top: 0, behavior: 'smooth'});
             });
         }
+
+        // === LOGIC 3: NÚT CHUYỂN ĐỔI THEME ===
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIconDark = document.getElementById('theme-icon-dark');
+        const themeIconLight = document.getElementById('theme-icon-light');
+        const themeText = document.getElementById('theme-text');
+        const rootHtml = document.documentElement;
+
+        // Hàm để cập nhật icon và chữ trên nút bấm
+        function updateToggleAppearance() {
+            const currentTheme = rootHtml.getAttribute('data-bs-theme');
+            if (currentTheme === 'dark') {
+                themeIconDark.style.display = 'none';
+                themeIconLight.style.display = 'inline-block';
+                themeText.textContent = 'Chế độ sáng';
+            } else {
+                themeIconDark.style.display = 'inline-block';
+                themeIconLight.style.display = 'none';
+                themeText.textContent = 'Chế độ tối';
+            }
+        }
+
+        // Cập nhật trạng thái nút bấm ngay khi tải trang
+        updateToggleAppearance();
+
+        // Gắn sự kiện click cho nút chuyển đổi
+        if (themeToggle) {
+            themeToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                // Lấy theme hiện tại và chuyển sang theme ngược lại
+                const currentTheme = rootHtml.getAttribute('data-bs-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                
+                // Cập nhật thuộc tính trên thẻ <html>
+                rootHtml.setAttribute('data-bs-theme', newTheme);
+                // Lưu lựa chọn mới vào localStorage
+                localStorage.setItem('theme', newTheme);
+                // Cập nhật lại giao diện nút bấm
+                updateToggleAppearance();
+            });
+        }
     });
     </script>
 {% endblock %}
 
-<button id="backToTopBtn" title="Lên đầu trang">
+<button id="backToTopBtn" title="Lên đầu trang" class="btn btn-primary rounded-circle fs-5 py-2 px-3">
     <i class="bi bi-arrow-up"></i>
 </button>
 

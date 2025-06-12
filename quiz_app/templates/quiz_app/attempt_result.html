@@ -6,13 +6,15 @@
 {% block content %}
     <style>
         body {
+            /* Thêm padding-bottom để thanh điều hướng không che mất nội dung */
             padding-bottom: 120px; 
         }
         .result-nav-panel {
             top: auto !important;
             bottom: 0;
-            background-color: #f8f9fa;
-            border-top: 1px solid #dee2e6;
+            /* SỬA LẠI: Dùng biến cho màu nền */
+            background-color: var(--bs-tertiary-bg); 
+            border-top: 1px solid var(--bs-border-color);
             z-index: 1020;
         }
         .result-nav-box {
@@ -21,29 +23,47 @@
             justify-content: center;
             width: 40px;
             height: 40px;
-            border: 1px solid #ccc;
+            border: 1px solid var(--bs-border-color);
             border-radius: 5px;
             cursor: pointer;
             font-weight: bold;
-            color: white;
+            /* SỬA LẠI: Dùng biến cho màu nền và màu chữ */
+            background-color: var(--bs-body-bg);
+            color: var(--bs-body-color);
             user-select: none;
             transition: transform 0.2s;
         }
         .result-nav-box:hover {
             transform: scale(1.1);
         }
-        .result-nav-box.correct-result { background-color: #198754; }
-        .result-nav-box.incorrect-result { background-color: #dc3545; }
         .result-nav-box.active {
-            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.5);
+            /* Bootstrap sẽ tự xử lý màu cho trạng thái active */
+            background-color: var(--bs-primary);
+            color: var(--bs-light);
+            border-color: var(--bs-primary);
         }
-        .result-box { text-align: center; border: 1px solid #ccc; padding: 20px; margin: 20px auto; max-width: 600px; background-color: #fff; border-radius: 8px;}
-        .score { font-size: 2.5em; font-weight: bold; color: #007bff; }
-        .question-review { border-top: 1px solid #ddd; padding-top: 15px; }
+        .result-nav-box.correct-result { background-color: #198754; color: white; }
+        .result-nav-box.incorrect-result { background-color: #dc3545; color: white; }
+        
+        .question-review { border-top: 1px solid var(--bs-border-color); padding-top: 15px; }
         .answer-option { display: block; padding: 8px; margin: 4px 0; border-radius: 4px; list-style-type: none; }
-        .selected-by-user { border-left: 5px solid #007bff; background-color: #e7f3ff; }
-        .correct-answer { color: #155724; background-color: #d4edda; }
-        .incorrect-selection { color: #721c24; background-color: #f8d7da; border-left: 5px solid #d9534f; }
+        
+        .selected-by-user { 
+            border-left: 5px solid var(--bs-primary); 
+            /* SỬA LẠI: Dùng biến cho màu nền */
+            background-color: var(--bs-primary-bg-subtle); 
+        }
+        .correct-answer { 
+            /* SỬA LẠI: Dùng biến cho màu chữ và nền */
+            color: var(--bs-success-text-emphasis); 
+            background-color: var(--bs-success-bg-subtle); 
+        }
+        .incorrect-selection { 
+            /* SỬA LẠI: Dùng biến cho màu chữ, nền và viền */
+            color: var(--bs-danger-text-emphasis); 
+            background-color: var(--bs-danger-bg-subtle); 
+            border-left: 5px solid var(--bs-danger); 
+        }
     </style>
 
     <div class="card shadow-sm mb-4">
@@ -65,10 +85,13 @@
                         {% elif percentage >= 50 %}
                             <h4 class="text-primary fw-bold"><i class="bi bi-hand-thumbs-up-fill me-2"></i>Làm tốt lắm!</h4>
                             <p class="lead">Bạn đã nắm vững phần lớn kiến thức quan trọng.</p>
-                        {% else %}
+                        {% elif percentage > 0 %}
                             <h4 class="text-warning fw-bold"><i class="bi bi-emoji-smile-fill me-2"></i>Cố gắng hơn nhé!</h4>
                             <p class="lead">Hãy xem lại các câu trả lời và thử sức lại lần nữa để cải thiện điểm số.</p>
-                        {% endif %}
+                        {% else %}
+                            <h4 class="text-warning fw-bold"><i class="bi bi-tencent-qq me-2"></i>Chắc phải hên lắm mới xui được như vậy!</h4>
+                            <p class="lead">Xác suất được điểm 0 còn khó hơn điểm 100. Bạn đã làm được một điều không tưởng!</p>
+                    {% endif %}
                         
                         <p class="h3 fw-bold mt-3">Điểm của bạn: 
                             <span class="text-primary">{{ attempt.score_achieved|floatformat:2 }}</span> / {{ attempt.quiz.scoring_scale_max }}
@@ -150,6 +173,7 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ block.super }}
     {# Nạp thư viện Chart.js từ CDN #}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 

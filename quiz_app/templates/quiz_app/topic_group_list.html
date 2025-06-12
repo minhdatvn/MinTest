@@ -52,8 +52,8 @@
                                 {% for topic in group.topic_set.all %}
                                     <div class="list-group-item d-flex justify-content-between align-items-center" id="topic-row-{{ topic.id }}"> 
                                         <div>
-                                            <a href="{% url 'question_list_in_topic' topic.id %}" class="text-decoration-none text-dark fw-bold">{{ topic.topic_name }}</a>
-                                            <span class="badge bg-light text-dark rounded-pill">{{ topic.questions.count }} câu hỏi</span>
+                                            <a href="{% url 'question_list_in_topic' topic.id %}" class="text-decoration-none text-body-emphasis fw-bold">{{ topic.topic_name }}</a>
+                                            <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill">{{ topic.questions.count }} câu hỏi</span>
                                             {% if topic.description %}<p class="mb-0 text-muted small">{{ topic.description }}</p>{% endif %}
                                         </div>
                                         <div class="item-actions">

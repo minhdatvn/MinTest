@@ -302,7 +302,7 @@
                                 <tr>
                                     <th>${questionCounter++}</th>
                                     <td style="word-break: break-word;">
-                                        <a href="#" class="text-decoration-none text-dark"
+                                        <a href="#" class="text-decoration-none text-body-emphasis"
                                         data-bs-toggle="modal"
                                         data-bs-target="#questionDetailModal"
                                         data-question-id="${q.id}">
@@ -387,7 +387,7 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            let contentHtml = `<p><strong>${data.question_text}</strong></p><hr>`;
+                            let contentHtml = `<p class="text-body-emphasis fs-5">${data.question_text}</p><hr>`;
                             contentHtml += '<ul class="list-group list-group-flush">';
 
                             data.answers.forEach(answer => {
