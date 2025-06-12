@@ -311,5 +311,12 @@ class EnrollmentForm(forms.Form):
 class CustomAuthenticationForm(AuthenticationForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Xóa thuộc tính autofocus khỏi widget của trường username một cách triệt để
         self.fields['username'].widget.attrs.pop('autofocus', None)
+
+        # Thêm placeholder cho cả hai trường
+        self.fields['username'].widget.attrs.update(
+            {'class': 'form-control', 'placeholder': 'Tên đăng nhập'}
+        )
+        self.fields['password'].widget.attrs.update(
+            {'class': 'form-control', 'placeholder': 'Mật khẩu'}
+        )
