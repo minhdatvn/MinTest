@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -8,13 +9,72 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
         body {
-            background-color: #f0f2f5;
+            /* Đặt ảnh nền */
+            background-image: url("{% static 'images/background.jpg' %}"); /* Thay 'background.jpg' bằng tên file của bạn */
+            
+            /* Căn chỉnh ảnh nền */
+            background-size: cover;
+            background-position: center center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
         }
+
         .main-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            /* Lớp phủ màu đen mờ được đặt ở đây để toàn bộ nội dung có chung lớp phủ */
+            background-color: rgba(0, 0, 0, 0.4); 
             min-height: 100vh;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+        
+        /* === BẮT ĐẦU PHẦN SỬA ĐỔI === */
+
+        /* 1. Làm cho Card có nền trong suốt và hiệu ứng kính mờ */
+        .main-container .card,
+        .main-container .hero-section {
+            background-color: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        /* 2. Đảm bảo các thành phần khác trong Card cũng có màu sáng */
+        .card .card-title, .card .lead, .card .text-muted, .card .form-label {
+            color: #f8f9fa !important; /* Dùng !important để ghi đè các style khác nếu cần */
+        }
+        .card p, .card h4 {
+            color: #f8f9fa !important;
+        }
+        
+        /* 3. Style cho các ô input để dễ nhìn trên nền tối */
+        .form-control {
+            background-color: rgba(255, 255, 255, 0.15);
+            color: white;
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        .form-control::placeholder {
+            color: #ddd;
+        }
+        .form-control:focus {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            border-color: #fff;
+            box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.25);
+        }
+
+        /* 4. Style cho các link trong Card */
+        .card a {
+            color: #90cfff !important; /* Màu xanh sáng cho link */
+        }
+        .list-group-item {
+            background-color: transparent !important; /* Nền trong suốt cho các mục trong danh sách */
+            border-color: rgba(255, 255, 255, 0.2) !important;
+        }
+        .list-group-item:hover {
+            background-color: rgba(255, 255, 255, 0.1) !important;
+        }
+        .main-container h2 {
+            color: white !important;
         }
     </style>
 </head>
