@@ -41,21 +41,26 @@
                         <p class="card-text text-muted">Chọn một trong các đề thi có sẵn để bắt đầu làm bài ngay mà không cần tài khoản.</p>
                         <div class="list-group">
                             {% for quiz in public_quizzes %}
-                                <a href="#" class="list-group-item list-group-item-action take-public-quiz-btn" 
-                                    data-bs-toggle="modal" 
-                                    data-bs-target="#guestNameModal" 
-                                    data-quiz-id="{{ quiz.id }}"
-                                    data-quiz-name="{{ quiz.quiz_name }}">
-                                    <div class="d-flex w-100 justify-content-between">
-                                        <h6 class="mb-1">{{ quiz.quiz_name }}</h6>
-                                        <small>{{ quiz.question_count }} câu</small>
-                                    </div>
-                                    <small class="text-muted">Thời gian: {{ quiz.time_limit_minutes }} phút.</small>
-                                </a>
+                            <a href="#" class="list-group-item list-group-item-action take-public-quiz-btn" 
+                                data-bs-toggle="modal" 
+                                data-bs-target="#guestNameModal" 
+                                data-quiz-id="{{ quiz.id }}"
+                                data-quiz-name="{{ quiz.quiz_name }}">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1 text-primary fw-bold">{{ quiz.quiz_name }}</h6>
+                                    <small class="text-muted">Tạo bởi: {{ quiz.user.username }}</small>
+                                </div>
+                                <p class="mb-1 text-muted small">Số câu hỏi: {{ quiz.question_count }} - Thời gian: {{ quiz.time_limit_minutes }} phút</p>
+                            </a>
                             {% empty %}
                                 <p class="text-center p-3">Hiện chưa có đề thi công khai nào.</p>
                             {% endfor %}
                         </div>
+                        {% if public_quizzes %}
+                        <div class="text-center mt-3">
+                            <a href="{% url 'public_quiz_list' %}" class="btn btn-sm btn-outline-primary">Xem tất cả đề thi công khai...</a>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>

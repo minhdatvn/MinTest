@@ -1537,7 +1537,6 @@ def signup_view(request):
         form = SignUpForm()
     return render(request, "quiz_app/signup.html", {"form": form})
 
-
 # --- Báo cáo kết quả tổng quát ---
 @login_required
 @permission_required("quiz_app.view_quiz", raise_exception=True)
@@ -1573,7 +1572,6 @@ def quiz_report_list_view(request):
 
     context = {"quizzes": quizzes}
     return render(request, "quiz_app/quiz_report_list.html", context)
-
 
 # --- Báo cáo kết quả chi tiết ---
 @login_required
@@ -1636,7 +1634,6 @@ def quiz_detail_report_view(request, quiz_id):
     }
     return render(request, "quiz_app/quiz_detail_report.html", context)
 
-
 # --- Trang Khách ---
 def guest_homepage_view(request):
     # Nếu người dùng đã đăng nhập, chuyển thẳng đến dashboard
@@ -1645,8 +1642,8 @@ def guest_homepage_view(request):
 
     # Lấy tất cả các đề thi được đánh dấu là công khai
     public_quizzes = Quiz.objects.filter(is_public=True, is_snapshot=False).annotate(
-        question_count=Count("questions")
-    )
+        question_count=Count('questions')
+    ).order_by('-created_at')[:4]
 
     # Chuẩn bị sẵn các form cho template
     login_form = CustomAuthenticationForm()
@@ -1659,6 +1656,26 @@ def guest_homepage_view(request):
     }
     return render(request, "quiz_app/guest_homepage.html", context)
 
+# --- Danh sách đề thi công khai ---
+def public_quiz_list_view(request):
+    # Lấy tất cả các đề thi được đánh dấu công khai và không phải là bản snapshot
+    public_quizzes_list = Quiz.objects.filter(is_public=True, is_snapshot=False).annotate(
+        question_count=Count('questions')
+    ).order_by('-created_at')
+
+    # Phân trang, hiển thị 10 đề thi mỗi trang
+    paginator = Paginator(public_quizzes_list, 10) 
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Lấy form nhập mã để hiển thị (tùy chọn, nhưng tiện lợi cho người dùng)
+    enrollment_form = EnrollmentForm()
+
+    context = {
+        'page_obj': page_obj,
+        'enrollment_form': enrollment_form,
+    }
+    return render(request, 'quiz_app/public_quiz_list.html', context)
 
 # --- Bài thi của Khách ---
 @transaction.atomic

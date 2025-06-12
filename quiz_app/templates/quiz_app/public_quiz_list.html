@@ -1,0 +1,83 @@
+{% extends 'quiz_app/base.html' %}
+{% load static %}
+
+{% block title %}Đề thi Công khai{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Khám phá các Đề thi Công khai</h1>
+    </div>
+    <p class="lead text-muted">Đây là danh sách các bài thi được cộng đồng đóng góp. Hãy chọn một bài và thử sức!</p>
+    
+    <div class="list-group">
+        {% for quiz in page_obj %}
+            {# Liên kết sẽ khác nhau tùy thuộc người dùng đã đăng nhập hay chưa #}
+            <a href="{% if user.is_authenticated %}{% url 'start_quiz' quiz.id %}{% else %}#{% endif %}"
+               class="list-group-item list-group-item-action {% if not user.is_authenticated %}take-public-quiz-btn{% endif %}"
+               {% if not user.is_authenticated %}
+                   data-bs-toggle="modal"
+                   data-bs-target="#guestNameModal"
+                   data-quiz-id="{{ quiz.id }}"
+                   data-quiz-name="{{ quiz.quiz_name }}"
+               {% endif %}>
+                
+                <div class="d-flex w-100 justify-content-between">
+                    <h5 class="mb-1 text-primary">{{ quiz.quiz_name }}</h5>
+                    <small>Tạo bởi: {{ quiz.user.username }}</small>
+                </div>
+                <p class="mb-1">Số câu hỏi: {{ quiz.question_count }} - Thời gian: {{ quiz.time_limit_minutes }} phút</p>
+            </a>
+        {% empty %}
+            <div class="alert alert-info mt-4">Hiện chưa có đề thi công khai nào.</div>
+        {% endfor %}
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo;</a></li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+            {% endif %}
+
+            {% for i in page_obj.paginator.page_range %}
+                {% if page_obj.number == i %}
+                    <li class="page-item active" aria-current="page"><span class="page-link">{{ i }}</span></li>
+                {% else %}
+                    <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo;</a></li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+
+    <div class="modal fade" id="guestNameModal" tabindex="-1" aria-labelledby="guestNameModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form action="{% url 'guest_start_quiz' %}" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="quiz_id" id="guest-quiz-id-input">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="guestNameModalLabel">Bắt đầu làm bài: <span id="modal-quiz-name"></span></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Vui lòng nhập tên của bạn để chúng tôi có thể lưu lại kết quả.</p>
+                        <input type="text" name="guest_name" class="form-control" placeholder="Nhập họ và tên của bạn..." required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
+                        <button type="submit" class="btn btn-success">Bắt đầu!</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}

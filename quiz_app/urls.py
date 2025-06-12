@@ -91,6 +91,7 @@ urlpatterns = [
     path(
         "quizzes/enroll/", views.enroll_in_quiz, name="enroll_in_quiz"
     ),  # Nhập đề thi vào danh sách
+    path('public-quizzes/', views.public_quiz_list_view, name='public_quiz_list'), #Trang đề thi công khai
     path(
         "quiz/<int:quiz_id>/start/", views.start_quiz, name="start_quiz"
     ),  # Bắt đầu bài thi
