@@ -46,11 +46,39 @@
         .incorrect-selection { color: #721c24; background-color: #f8d7da; border-left: 5px solid #d9534f; }
     </style>
 
-    <div class="result-box">
-        <h1>Bạn đã hoàn thành bài thi!</h1>
-        <h2>{{ attempt.quiz.quiz_name }}</h2>
-        <p>Điểm của bạn:</p>
-        <p class="score">{{ attempt.score_achieved|floatformat:2 }} / {{ attempt.quiz.scoring_scale_max }}</p>
+    <div class="card shadow-sm mb-4">
+        <div class="card-body p-4">
+            <div class="row align-items-center">
+                
+                <div class="col-md-4 text-center mb-3 mb-md-0">
+                    <canvas id="scoreChart" style="max-width: 180px; max-height: 180px; margin: auto;"></canvas>
+                </div>
+
+                <div class="col-md-8">
+                    <h2 class="card-title">Kết quả: {{ attempt.quiz.quiz_name }}</h2>
+                    
+                    {# Dùng filter 'percentage' vừa tạo #}
+                    {% with percentage=attempt.score_achieved|percentage:attempt.quiz.scoring_scale_max %}
+                        {% if percentage >= 80 %}
+                            <h4 class="text-success fw-bold"><i class="bi bi-trophy-fill me-2"></i>Xuất sắc!</h4>
+                            <p class="lead">Bạn đã thể hiện một sự hiểu biết tuyệt vời về chủ đề này.</p>
+                        {% elif percentage >= 50 %}
+                            <h4 class="text-primary fw-bold"><i class="bi bi-hand-thumbs-up-fill me-2"></i>Làm tốt lắm!</h4>
+                            <p class="lead">Bạn đã nắm vững phần lớn kiến thức quan trọng.</p>
+                        {% else %}
+                            <h4 class="text-warning fw-bold"><i class="bi bi-emoji-smile-fill me-2"></i>Cố gắng hơn nhé!</h4>
+                            <p class="lead">Hãy xem lại các câu trả lời và thử sức lại lần nữa để cải thiện điểm số.</p>
+                        {% endif %}
+                        
+                        <p class="h3 fw-bold mt-3">Điểm của bạn: 
+                            <span class="text-primary">{{ attempt.score_achieved|floatformat:2 }}</span> / {{ attempt.quiz.scoring_scale_max }}
+                            <span class="badge bg-info-subtle text-info-emphasis rounded-pill fs-6 align-middle ms-2">{{ percentage|floatformat:0 }}%</span>
+                        </p>
+                    {% endwith %}
+                </div>
+
+            </div>
+        </div>
     </div>
 
     <div class="review-container card">
@@ -119,48 +147,81 @@
             <a href="{% url 'history_list' %}" class="btn btn-secondary ms-4">Quay lại Lịch sử</a>
         </div>
     </nav>
+{% endblock %}
+
+{% block extra_js %}
+    {# Nạp thư viện Chart.js từ CDN #}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const questionContainers = document.querySelectorAll('.result-question-container');
-            const navBoxes = document.querySelectorAll('.result-nav-box');
-            const nextBtn = document.getElementById('next-result-btn');
-            const prevBtn = document.getElementById('prev-result-btn');
-            const totalQuestions = questionContainers.length;
-            let currentQuestionIndex = 0;
+    document.addEventListener('DOMContentLoaded', function () {
+        
+        // --- PHẦN 1: LOGIC ĐIỀU HƯỚNG KẾT QUẢ (CODE GỐC CỦA BẠN) ---
+        const questionContainers = document.querySelectorAll('.result-question-container');
+        const navBoxes = document.querySelectorAll('.result-nav-box');
+        const nextBtn = document.getElementById('next-result-btn');
+        const prevBtn = document.getElementById('prev-result-btn');
+        const totalQuestions = questionContainers.length;
+        let currentQuestionIndex = 0;
+        
+        function showQuestion(index) {
+            if(index < 0 || index >= totalQuestions) return;
+            questionContainers.forEach(container => container.classList.add('d-none'));
+            if (questionContainers[index]) questionContainers[index].classList.remove('d-none');
             
-            // Logic điều hướng (đã được tinh giản)
-            function showQuestion(index) {
-                // Ẩn tất cả các câu hỏi
-                questionContainers.forEach(container => container.classList.add('d-none'));
-                // Hiện câu hỏi được chọn
-                if (questionContainers[index]) questionContainers[index].classList.remove('d-none');
-                
-                // Cập nhật trạng thái 'active' cho ô số điều hướng
-                navBoxes.forEach(box => box.classList.remove('active'));
-                if (navBoxes[index]) navBoxes[index].classList.add('active');
+            navBoxes.forEach(box => box.classList.remove('active'));
+            if (navBoxes[index]) navBoxes[index].classList.add('active');
 
-                // Cập nhật trạng thái các nút
-                if(prevBtn) prevBtn.disabled = (index === 0);
-                if(nextBtn) nextBtn.disabled = (index === totalQuestions - 1);
-                
-                currentQuestionIndex = index;
-            }
-
-            if (nextBtn) nextBtn.addEventListener('click', () => { if (currentQuestionIndex < totalQuestions - 1) showQuestion(currentQuestionIndex + 1); });
-            if (prevBtn) prevBtn.addEventListener('click', () => { if (currentQuestionIndex > 0) showQuestion(currentQuestionIndex - 1); });
+            if(prevBtn) prevBtn.disabled = (index === 0);
+            if(nextBtn) nextBtn.disabled = (index === totalQuestions - 1);
             
-            navBoxes.forEach(box => {
-                box.addEventListener('click', function () {
-                    const index = parseInt(this.dataset.questionIndex, 10);
-                    showQuestion(index);
-                });
+            currentQuestionIndex = index;
+        }
+
+        if (nextBtn) nextBtn.addEventListener('click', () => { if (currentQuestionIndex < totalQuestions - 1) showQuestion(currentQuestionIndex + 1); });
+        if (prevBtn) prevBtn.addEventListener('click', () => { if (currentQuestionIndex > 0) showQuestion(currentQuestionIndex - 1); });
+        
+        navBoxes.forEach(box => {
+            box.addEventListener('click', function () {
+                const index = parseInt(this.dataset.questionIndex, 10);
+                showQuestion(index);
             });
-
-            // Khởi chạy trạng thái ban đầu cho câu hỏi đầu tiên
-            if (totalQuestions > 0) {
-                showQuestion(0);
-            }
         });
+
+        if (totalQuestions > 0) {
+            showQuestion(0);
+        }
+
+        // --- PHẦN 2: LOGIC VẼ BIỂU ĐỒ (CODE MỚI) ---
+        const ctx = document.getElementById('scoreChart');
+        if (ctx) {
+            // Lấy dữ liệu điểm từ context của Django
+            const userScore = parseFloat('{{ attempt.score_achieved|default:0|stringformat:".2f" }}');
+            const maxScore = parseFloat('{{ attempt.quiz.scoring_scale_max|default:100|stringformat:".2f" }}');
+            const remainingScore = Math.max(0, maxScore - userScore);
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Điểm đạt được', 'Phần còn lại'],
+                    datasets: [{
+                        data: [userScore, remainingScore],
+                        backgroundColor: ['#198754', '#e9ecef'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false }
+                    }
+                }
+            });
+        }
+    });
     </script>
 {% endblock %}

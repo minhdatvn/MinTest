@@ -23,3 +23,18 @@ def to_char(value):
         # Nếu giá trị đầu vào không hợp lệ (ví dụ: một chuỗi text),
         # trả về một chuỗi rỗng để tránh gây lỗi trang web.
         return ''
+
+@register.filter(name='percentage')
+def percentage(value, max_value):
+    """
+    Chuyển đổi điểm số thành phần trăm.
+    Ví dụ: {{ 80|percentage:100 }} -> 80.0
+    """
+    try:
+        score = float(value)
+        max_score = float(max_value)
+        if max_score == 0:
+            return 0
+        return (score / max_score) * 100
+    except (ValueError, TypeError):
+        return 0
