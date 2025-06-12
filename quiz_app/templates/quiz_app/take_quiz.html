@@ -12,8 +12,9 @@
         .quiz-nav-panel {
             top: auto !important;
             bottom: 0;
-            background-color: #f8f9fa;
-            border-top: 1px solid #dee2e6;
+            /* SỬA LẠI: Dùng biến CSS cho màu nền và màu viền */
+            background-color: var(--bs-tertiary-bg);
+            border-top: 1px solid var(--bs-border-color);
             z-index: 1020;
         }
         .question-nav-box {
@@ -22,26 +23,30 @@
             justify-content: center;
             width: 40px;
             height: 40px;
-            border: 1px solid #ccc;
+            /* SỬA LẠI: Dùng biến CSS */
+            border: 1px solid var(--bs-border-color-translucent);
+            background-color: var(--bs-body-bg);
             border-radius: 5px;
             cursor: pointer;
             font-weight: bold;
-            background-color: #fff;
             transition: background-color 0.2s, color 0.2s;
             user-select: none;
         }
         .question-nav-box:hover {
-            background-color: #e9ecef;
+            /* SỬA LẠI: Dùng biến CSS */
+            background-color: var(--bs-secondary-bg);
         }
         .question-nav-box.active {
-            background-color: #0d6efd;
-            color: white;
-            border-color: #0d6efd;
+            /* SỬA LẠI: Dùng biến CSS */
+            background-color: var(--bs-primary);
+            color: white; /* Giữ màu trắng trên nền màu chính là phù hợp */
+            border-color: var(--bs-primary);
         }
         .question-nav-box.answered {
-            background-color: #198754;
-            color: white;
-            border-color: #198754;
+            /* SỬA LẠI: Dùng biến CSS */
+            background-color: var(--bs-success);
+            color: white; /* Giữ màu trắng trên nền màu thành công */
+            border-color: var(--bs-success);
         }
         .no-select {
             user-select: none;
@@ -49,28 +54,25 @@
             -moz-user-select: none;
             -ms-user-select: none;
         }
-        /* === CSS MỚI CHO TÍNH NĂNG ĐÁNH DẤU === */
         .flag-btn {
             border: none;
         }
         .flag-btn.flagged .bi-flag {
-            display: none; /* Ẩn icon cờ rỗng */
+            display: none;
         }
         .flag-btn:not(.flagged) .bi-flag-fill {
-            display: none; /* Ẩn icon cờ tô màu */
+            display: none;
         }
         .flag-btn.flagged .bi-flag-fill {
-            display: inline-block; /* Hiện icon cờ tô màu khi được đánh dấu */
-            color: #ffc107; /* Màu vàng */
+            display: inline-block;
+            color: #ffc107; /* Màu vàng cho cờ có thể giữ nguyên */
         }
         .flag-btn .bi {
-            font-size: 1.1rem; /* <-- Tăng kích thước icon */
-            vertical-align: middle; /* Căn giữa icon cho đẹp hơn */
+            font-size: 1.1rem;
+            vertical-align: middle;
         }
-
-        /* Kiểu cho ô số được đánh dấu */
         .question-nav-box.flagged {
-            border-color: #ffc107;
+            border-color: #ffc107; /* Màu vàng cho cờ có thể giữ nguyên */
             border-width: 4px;
         }
     </style>

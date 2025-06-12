@@ -131,22 +131,44 @@ def _process_question_dataframe(df, topic_instance):
 
 @login_required
 def dashboard_view(request):
-    """
-    View này chỉ thu thập và hiển thị các số liệu thống kê.
-    """
-    num_groups = TopicGroup.objects.filter(user=request.user).count()
-    num_topics = Topic.objects.filter(user=request.user).count()
-    num_questions = Question.objects.filter(topic__user=request.user).count()
-    num_attempts = UserAttempt.objects.filter(
-        user=request.user, end_time__isnull=False
-    ).count()
+    user = request.user
 
-    context = {
-        "num_groups": num_groups,
-        "num_topics": num_topics,
-        "num_questions": num_questions,
-        "num_attempts": num_attempts,
+    # 1. Thống kê cho thẻ "Quản lý nội dung"
+    content_stats = {
+        'topic_groups': TopicGroup.objects.filter(user=user).count(),
+        'topics': Topic.objects.filter(user=user).count(),
+        'questions': Question.objects.filter(topic__user=user).count(),
     }
+
+    # 2. Thống kê cho thẻ "Danh sách đề thi"
+    quiz_stats = {
+        'static': Quiz.objects.filter(user=user, quiz_type='static', is_snapshot=False).count(),
+        'dynamic': Quiz.objects.filter(user=user, quiz_type='dynamic', is_snapshot=False).count(),
+    }
+
+    # 3. Lấy danh sách đề thi công khai (GIỚI HẠN HIỂN THỊ)
+    # Sắp xếp theo ngày tạo mới nhất và chỉ lấy 4 đề thi đầu tiên
+    public_quizzes = Quiz.objects.filter(is_public=True, is_snapshot=False).annotate(
+        question_count=Count('questions')
+    ).order_by('-created_at')[:4]
+
+    # 4. Form tham gia bằng mã
+    enrollment_form = EnrollmentForm()
+
+    # 5. Hoạt động gần đây: Lấy 5 lượt làm bài cuối cùng của người dùng
+    recent_attempts = UserAttempt.objects.filter(user=user, end_time__isnull=False).select_related(
+        'quiz'
+    ).order_by('-start_time')[:5]
+
+    # 6. Đưa tất cả vào context để gửi sang template
+    context = {
+        'content_stats': content_stats,
+        'quiz_stats': quiz_stats,
+        'public_quizzes': public_quizzes,
+        'enrollment_form': enrollment_form,
+        'recent_attempts': recent_attempts,
+    }
+    
     return render(request, "quiz_app/dashboard.html", context)
 
 
