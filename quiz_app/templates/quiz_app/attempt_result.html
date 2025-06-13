@@ -405,7 +405,7 @@
             });
         });
         
-        // --- PHẦN 4: LOGIC CUỐI CÙNG CHO NÚT CHIA SẺ ---
+        // --- PHẦN 4: LOGIC CUỐI CÙNG VÀ ỔN ĐỊNH NHẤT CHO NÚT CHIA SẺ ---
         const shareBtn = document.getElementById('share-result-btn');
         if (shareBtn) {
             const shareModalEl = document.getElementById('shareResultModal');
@@ -414,34 +414,34 @@
             const copyBtn = document.getElementById('copy-share-text-btn');
 
             shareBtn.addEventListener('click', function() {
-                // Lấy dữ liệu trực tiếp từ template
+                // Lấy tất cả dữ liệu cần thiết
                 const score = '{{ attempt.score_achieved|floatformat:2 }}';
                 const maxScore = '{{ attempt.quiz.scoring_scale_max }}';
                 const quizName = '{{ share_quiz_name|escapejs }}';
                 const url = '{{ homepage_url }}';
-                const accessCode = '{{ share_access_code|default:"" }}'; // Lấy mã đã có
+                const accessCode = '{{ share_access_code|default:"" }}';
 
-                // Xây dựng nội dung chia sẻ cho API
-                let textForApi = `📝 Tôi vừa hoàn thành đề thi "${quizName}" với kết quả ${score}/${maxScore}!`;
-
-                // Xây dựng nội dung đầy đủ cho clipboard
-                let textForClipboard = textForApi + '\n\n';
-                if (accessCode) { // Chỉ thêm dòng này nếu mã tồn tại
-                    textForClipboard += `Mã tham gia đề thi này là: ${accessCode}\n\n`;
+                // --- THAY ĐỔI CHÍNH Ở ĐÂY ---
+                // 1. Xây dựng một chuỗi văn bản duy nhất chứa tất cả thông tin
+                let shareText = `📝 Tôi vừa hoàn thành đề thi "${quizName}" với kết quả ${score}/${maxScore}!\n\n`;
+                if (accessCode) {
+                    shareText += `Mã tham gia đề thi này là: *${accessCode}*\n\n`;
                 }
-                textForClipboard += `Bạn cũng có thể thử sức tại đây: ${url}`;
+                shareText += `Bạn cũng có thể thử sức tại đây:\n${url}`;
 
+                // 2. Tạo đối tượng chia sẻ chỉ chứa title và text (không có url riêng)
                 const shareData = {
                     title: 'Kết quả thi trắc nghiệm',
-                    text: textForApi,
-                    url: url,
+                    text: shareText, // Toàn bộ nội dung nằm trong text
                 };
 
+                // 3. Tiến hành chia sẻ
                 if (navigator.share) {
+                    // Chia sẻ đối tượng đã được gộp
                     navigator.share(shareData).catch((err) => console.error("Lỗi khi chia sẻ:", err));
                 } else {
-                    // Hiển thị modal với nội dung đầy đủ cho việc sao chép
-                    shareTextArea.value = textForClipboard;
+                    // Phương án dự phòng cũng dùng chính chuỗi văn bản đó
+                    shareTextArea.value = shareText;
                     copyBtn.innerHTML = '<i class="bi bi-clipboard"></i> Sao chép nội dung';
                     shareModal.show();
                 }
