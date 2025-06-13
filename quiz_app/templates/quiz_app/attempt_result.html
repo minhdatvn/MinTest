@@ -70,37 +70,48 @@
     <div class="card shadow-sm mb-4">
         <div class="card-body p-4">
             <div class="row align-items-center">
-                
-                <div class="col-md-4 text-center mb-3 mb-md-0">
-                    <div class="position-relative" style="max-width: 180px; max-height: 180px; margin: auto;">
-                        <canvas id="scoreChart"></canvas>
-                        <div id="chart-score-text" class="position-absolute top-50 start-50 translate-middle h2 fw-bold text-body-emphasis">0%</div>
+                {# --- KHỐI BÊN TRÁI: KHUÔN ẢNH ĐÃ ĐƯỢC CẬP NHẬT HOÀN CHỈNH --- #}
+                <div class="col-md-5 text-center mb-3 mb-md-0">
+                    <div id="result-card-to-capture" style="width: 100%; max-width: 400px; padding: 20px; background-color: white; border-radius: 15px; margin: auto;" class="shadow-sm">
+                        
+                        {# 1. Sửa lại tiêu đề #}
+                        <h4 style="text-align: center; margin-bottom: 15px; color: #333; font-size: 1.5rem;">Kết quả bài thi</h4>
+                        
+                        {# Biểu đồ (không đổi) #}
+                        <div style="position: relative; width: 200px; height: 200px; margin: auto;">
+                            <canvas id="scoreChart"></canvas>
+                            <div id="chart-score-text" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2.2rem; font-weight: bold; color: #333;">
+                                {{ attempt.score_achieved|percentage:attempt.quiz.scoring_scale_max|floatformat:0 }}%
+                            </div>
+                        </div>
+                        
+                        {# Điểm số (không đổi) #}
+                        <p style="text-align: center; font-size: 1.5rem; font-weight: bold; margin: 15px 0 5px 0; color: #0d6efd;">
+                            {{ attempt.score_achieved|floatformat:2 }} / {{ attempt.quiz.scoring_scale_max }}
+                        </p>
+                        
+                        {# 2. Thêm lời bình luận và icon vào trong ảnh #}
+                        {% with percentage=attempt.score_achieved|percentage:attempt.quiz.scoring_scale_max %}
+                            {% if percentage >= 85 %}
+                                <p style="text-align: center; font-size: 1.1rem; font-weight: bold; color: #198754;">Xuất sắc!</p>
+                            {% elif percentage >= 50 %}
+                                <p style="text-align: center; font-size: 1.1rem; font-weight: bold; color: #0d6efd;">Làm tốt lắm!</p>
+                            {% else %}
+                                <p style="text-align: center; font-size: 1.1rem; font-weight: bold; color: #ffc107;">Cố gắng hơn nhé!</p>
+                            {% endif %}
+                        {% endwith %}
+            
                     </div>
                 </div>
-
-                <div class="col-md-8">
-                    <h2 class="card-title">Kết quả: {{ attempt.quiz.quiz_name }}</h2>
-                    
-                    {# Dùng filter 'percentage' vừa tạo #}
-                    {% with percentage=attempt.score_achieved|percentage:attempt.quiz.scoring_scale_max %}
-                        {% if percentage >= 85 %}
-                            <h4 class="text-success fw-bold"><i class="bi bi-trophy-fill me-2"></i>Xuất sắc!</h4>
-                            <p class="lead">Bạn đã thể hiện một sự hiểu biết tuyệt vời về chủ đề này. Hãy tiếp tục phát huy!</p>
-                        {% elif percentage >= 50 %}
-                            <h4 class="text-primary fw-bold"><i class="bi bi-hand-thumbs-up-fill me-2"></i>Làm tốt lắm!</h4>
-                            <p class="lead">Bạn đã nắm vững phần lớn kiến thức quan trọng. Hãy tiếp tục rèn luyện nhé!</p>
-                        {% elif percentage > 0 %}
-                            <h4 class="text-warning fw-bold"><i class="bi bi-emoji-smile-fill me-2"></i>Cố gắng hơn nhé!</h4>
-                            <p class="lead">Hãy xem lại các câu trả lời và thử sức lại lần nữa để cải thiện điểm số.</p>
-                        {% else %}
-                            <h4 class="text-warning fw-bold"><i class="bi bi-tencent-qq me-2"></i>Chắc phải hên lắm mới xui được như vậy!</h4>
-                            <p class="lead">Xác suất được điểm 0 còn thấp hơn điểm 100. Bạn đã làm được một điều không tưởng!</p>
-                    {% endif %}
-                        
-                        <p class="h3 fw-bold mt-3">Điểm của bạn: 
-                            <span class="text-primary">{{ attempt.score_achieved|floatformat:2 }}</span> / {{ attempt.quiz.scoring_scale_max }}
-                        </p>
-                    {% endwith %}
+            
+                {# --- KHỐI BÊN PHẢI: CHỈ GIỮ LẠI THÔNG TIN KHÔNG BỊ TRÙNG LẶP --- #}
+                <div class="col-md-7">
+                    <h2 class="card-title">{{ share_quiz_name }}</h2>
+                    <p class="text-muted">Lượt thi lúc: {{ attempt.start_time|date:"H:i, d/m/Y" }}</p>
+                    <hr>
+                    <p class="lead">
+                        Cảm ơn bạn đã hoàn thành bài thi. Bạn có thể xem lại chi tiết các câu trả lời ở bên dưới, làm lại bài thi hoặc quay về trang chủ.
+                    </p>
                 </div>
             </div>
         </div>
@@ -244,240 +255,179 @@
 
 {% block extra_js %}
 {{ block.super }}
+    {# Nạp thư viện html-to-image #}
+    <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
     {# Nạp thư viện Chart.js từ CDN #}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        
-        // --- PHẦN 1: LOGIC ĐIỀU HƯỚNG KẾT QUẢ (CODE GỐC CỦA BẠN) ---
-        const questionContainers = document.querySelectorAll('.result-question-container');
-        const navBoxes = document.querySelectorAll('.result-nav-box');
-        const nextBtn = document.getElementById('next-result-btn');
-        const prevBtn = document.getElementById('prev-result-btn');
-        const totalQuestions = questionContainers.length;
-        let currentQuestionIndex = 0;
-        
-        function showQuestion(index) {
-            if(index < 0 || index >= totalQuestions) return;
-            questionContainers.forEach(container => container.classList.add('d-none'));
-            if (questionContainers[index]) questionContainers[index].classList.remove('d-none');
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- PHẦN 1: LOGIC ĐIỀU HƯỚNG & LỌC KẾT QUẢ (PHẦN BỊ THIẾU) ---
+            const reviewContainer = document.querySelector('.review-container');
+            const navPanel = document.querySelector('.result-nav-panel');
+            const offcanvasPanel = document.getElementById('resultNavOffcanvas');
+            const filterButtons = document.querySelectorAll('.filter-btn');
             
-            navBoxes.forEach(box => box.classList.remove('active'));
-            if (navBoxes[index]) navBoxes[index].classList.add('active');
+            const questionContainers = document.querySelectorAll('.result-question-container');
+            const allNavBoxes = document.querySelectorAll('.result-nav-box');
+            const nextBtn = document.getElementById('next-result-btn');
+            const prevBtn = document.getElementById('prev-result-btn');
+            const totalQuestions = questionContainers.length;
+            let currentQuestionIndex = 0;
+            let visibleNavBoxes = Array.from(allNavBoxes); // Mảng chứa các ô số đang hiển thị
 
-            if(prevBtn) prevBtn.disabled = (index === 0);
-            if(nextBtn) nextBtn.disabled = (index === totalQuestions - 1);
-            
-            currentQuestionIndex = index;
-        }
+            function showQuestion(index) {
+                const actualIndexToShow = visibleNavBoxes.indexOf(allNavBoxes[index]);
+                if (actualIndexToShow === -1) return;
 
-        if (nextBtn) nextBtn.addEventListener('click', () => { if (currentQuestionIndex < totalQuestions - 1) showQuestion(currentQuestionIndex + 1); });
-        if (prevBtn) prevBtn.addEventListener('click', () => { if (currentQuestionIndex > 0) showQuestion(currentQuestionIndex - 1); });
-        
-        navBoxes.forEach(box => {
-            box.addEventListener('click', function () {
-                const index = parseInt(this.dataset.questionIndex, 10);
-                showQuestion(index);
-            });
-        });
-
-        if (totalQuestions > 0) {
-            showQuestion(0);
-        }
-
-        // --- PHẦN 2: LOGIC VẼ BIỂU ĐỒ (CODE MỚI) ---
-        const ctx = document.getElementById('scoreChart');
-        const scoreTextEl = document.getElementById('chart-score-text');
-
-        if (ctx && scoreTextEl) {
-            const userScore = parseFloat('{{ attempt.score_achieved|default:0|stringformat:".2f" }}');
-            const maxScore = parseFloat('{{ attempt.quiz.scoring_scale_max|default:100|stringformat:".2f" }}');
-            const remainingScore = Math.max(0, maxScore - userScore);
-            // Tính toán % cuối cùng một lần duy nhất
-            const finalPercentage = maxScore > 0 ? (userScore / maxScore) * 100 : 0;
-
-            new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    datasets: [{
-                        data: [userScore, remainingScore],
-                        backgroundColor: [
-                            '#198754', // Quay lại màu xanh lá cây đơn giản
-                            '#f8f9fa'  // Màu nền xám rất nhạt
-                        ],
-                        borderColor: 'var(--bs-body-bg)',
-                        borderWidth: 2
-                        // Bỏ các thuộc tính bo góc và gradient
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '70%',
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: { enabled: false }
-                    },
-                    // --- PHẦN ANIMATION MỚI ĐỂ SỬA LỖI ĐẾM % ---
-                    animation: {
-                        duration: 1500, // Thời gian animation
-                        onProgress: function(animation) {
-                            // animation.currentStep là bước animation hiện tại
-                            // animation.numSteps là tổng số bước
-                            // Tỷ lệ hoàn thành animation (từ 0.0 đến 1.0)
-                            const progress = animation.currentStep / animation.numSteps;
-                            
-                            // Tính toán % để hiển thị dựa trên tỷ lệ đó
-                            const currentDisplayPercentage = progress * finalPercentage;
-                            
-                            scoreTextEl.textContent = `${Math.round(currentDisplayPercentage)}%`;
-                        },
-                        // Đảm bảo giá trị cuối cùng luôn chính xác tuyệt đối
-                        onComplete: function(animation) {
-                             scoreTextEl.textContent = `${Math.round(finalPercentage)}%`;
-                        }
-                    }
+                questionContainers.forEach(container => container.classList.add('d-none'));
+                if (questionContainers[index]) {
+                    questionContainers[index].classList.remove('d-none');
                 }
-            });
-        }
 
-        // --- PHẦN 3: LOGIC LỌC KẾT QUẢ ---
-        const reviewContainer = document.querySelector('.review-container');
-        const navPanel = document.querySelector('.result-nav-panel');
-        const offcanvasPanel = document.getElementById('resultNavOffcanvas');
-        const filterButtons = document.querySelectorAll('.filter-btn');
-        const allNavBoxes = document.querySelectorAll('.result-nav-box');
-
-        filterButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                // === THÊM LOGIC MỚI ĐỂ HIỆN CÁC KHỐI BỊ ẨN ===
-                if (reviewContainer && reviewContainer.classList.contains('d-none')) {
-                    reviewContainer.classList.remove('d-none');
-                    navPanel.classList.remove('d-none');
-                    offcanvasPanel.classList.remove('d-none');
-                    reviewContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }        
-
-                // Cập nhật trạng thái active cho các nút lọc
-                filterButtons.forEach(btn => btn.classList.remove('active'));
-                this.classList.add('active');
-
-                const filter = this.dataset.filter;
-                let firstVisibleQuestionIndex = -1;
-
-                allNavBoxes.forEach((navBox, index) => {
-                    const questionContainer = document.getElementById(`result-question-${index}`);
-                    let show = false; // Mặc định là ẩn
-
-                    // Kiểm tra điều kiện để hiển thị
-                    if (filter === 'all') {
-                        show = true;
-                    } else if (filter === 'correct' && navBox.classList.contains('correct-result')) {
-                        show = true;
-                    } else if (filter === 'incorrect' && navBox.classList.contains('incorrect-result')) {
-                        show = true;
-                    }
-                    
-                    // Ẩn/hiện cả ô số trong panel trượt và khối câu hỏi tương ứng
-                    navBox.style.display = show ? 'flex' : 'none';
-                    if (questionContainer) {
-                        // Lưu ý: khối câu hỏi vẫn được ẩn/hiện bằng d-none như cũ
-                        // nên chúng ta không thay đổi style.display của nó ở đây
-                        // mà sẽ dùng hàm showQuestion()
-                    }
-
-                    // Tìm câu hỏi đầu tiên được hiển thị trong bộ lọc
-                    if (show && firstVisibleQuestionIndex === -1) {
-                        firstVisibleQuestionIndex = index;
-                    }
-                });
-
-                // Tự động nhảy đến câu hỏi đầu tiên trong danh sách đã lọc
-                if (firstVisibleQuestionIndex !== -1) {
-                    showQuestion(firstVisibleQuestionIndex);
-                } else {
-                    // Nếu không có câu nào khớp (ví dụ: lọc câu sai nhưng làm đúng hết)
-                    // thì ẩn hết các container câu hỏi
-                    questionContainers.forEach(container => container.classList.add('d-none'));
-                    // Có thể hiển thị một thông báo ở đây nếu muốn
+                allNavBoxes.forEach(box => box.classList.remove('active'));
+                if (allNavBoxes[index]) {
+                    allNavBoxes[index].classList.add('active');
                 }
-            });
-        });
-        
-        // --- PHẦN 4: LOGIC NÂNG CAO - CHIA SẺ KẾT QUẢ DẠNG HÌNH ẢNH ---
-        const shareBtn = document.getElementById('share-result-btn');
-        if (shareBtn) {
-            const shareModalEl = document.getElementById('shareResultModal');
-            const shareModal = new bootstrap.Modal(shareModalEl);
-            const shareTextArea = document.getElementById('share-text-content');
-            const copyBtn = document.getElementById('copy-share-text-btn');
 
-            // Chuyển hàm xử lý thành một hàm async để xử lý các tác vụ bất đồng bộ
-            async function handleShare() {
-                // Lấy canvas của biểu đồ
-                const canvas = document.getElementById('scoreChart');
-
-                // Lấy các thông tin văn bản cần thiết
-                const score = '{{ attempt.score_achieved|floatformat:2 }}';
-                const maxScore = '{{ attempt.quiz.scoring_scale_max }}';
-                const quizName = '{{ share_quiz_name|escapejs }}';
-                const url = '{{ homepage_url }}';
-                const accessCode = '{{ share_access_code|default:"" }}';
-
-                // Xây dựng nội dung văn bản cho phương án dự phòng hoặc đi kèm ảnh
-                let fallbackText = `📝 Tôi vừa hoàn thành đề thi "${quizName}" với kết quả ${score}/${maxScore}!\n\n`;
-                if (accessCode) {
-                    fallbackText += `Mã tham gia đề thi này là: ${accessCode}\n\n`;
-                }
-                fallbackText += `Bạn cũng có thể thử sức tại đây:\n${url}`;
-
-                // Kiểm tra xem trình duyệt có hỗ trợ chia sẻ file không
-                if (navigator.canShare && canvas) {
-                    try {
-                        // Bước 1: Chuyển đổi canvas thành một đối tượng Blob (dữ liệu ảnh thô)
-                        // canvas.toBlob là một hàm bất đồng bộ, nên chúng ta dùng Promise để đợi nó hoàn thành
-                        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-
-                        // Bước 2: Tạo một đối tượng File từ Blob để API có thể xử lý
-                        const file = new File([blob], 'quiz-result.png', { type: 'image/png' });
-
-                        // Bước 3: Kiểm tra xem trình duyệt có thể chia sẻ loại file này không
-                        if (navigator.canShare({ files: [file] })) {
-                            // Bước 4: Xây dựng dữ liệu và tiến hành chia sẻ
-                            await navigator.share({
-                                files: [file],
-                                title: 'Kết quả thi của tôi!',
-                                text: `Xem kết quả thi "${quizName}" của tôi.`,
-                            });
-                            console.log('Chia sẻ hình ảnh thành công!');
-                            return; // Kết thúc hàm sau khi chia sẻ thành công
-                        }
-                    } catch (err) {
-                        console.error("Lỗi khi chia sẻ file ảnh, chuyển sang chia sẻ văn bản:", err);
-                    }
-                }
+                currentQuestionIndex = index;
                 
-                // --- PHƯƠNG ÁN DỰ PHÒNG ---
-                // Nếu trình duyệt không hỗ trợ chia sẻ file, hoặc có lỗi xảy ra
-                // chúng ta sẽ quay lại chia sẻ văn bản qua modal copy-paste
-                console.log("Trình duyệt không hỗ trợ chia sẻ ảnh, sử dụng phương án dự phòng.");
-                shareTextArea.value = fallbackText;
-                copyBtn.innerHTML = '<i class="bi bi-clipboard"></i> Sao chép nội dung';
-                shareModal.show();
+                // Cập nhật trạng thái nút Prev/Next dựa trên danh sách *đã lọc*
+                const firstVisibleIndex = parseInt(visibleNavBoxes[0].dataset.questionIndex, 10);
+                const lastVisibleIndex = parseInt(visibleNavBoxes[visibleNavBoxes.length - 1].dataset.questionIndex, 10);
+                
+                if(prevBtn) prevBtn.disabled = (currentQuestionIndex === firstVisibleIndex);
+                if(nextBtn) nextBtn.disabled = (currentQuestionIndex === lastVisibleIndex);
             }
 
-            // Gắn hàm xử lý vào sự kiện click
-            shareBtn.addEventListener('click', handleShare);
+            if (nextBtn) nextBtn.addEventListener('click', () => {
+                const currentVisibleIndex = visibleNavBoxes.indexOf(allNavBoxes[currentQuestionIndex]);
+                if (currentVisibleIndex < visibleNavBoxes.length - 1) {
+                    const nextQuestionGlobalIndex = parseInt(visibleNavBoxes[currentVisibleIndex + 1].dataset.questionIndex, 10);
+                    showQuestion(nextQuestionGlobalIndex);
+                }
+            });
 
-            // Gắn sự kiện cho nút sao chép trong modal (không đổi)
-            copyBtn.addEventListener('click', function() {
-                shareTextArea.select();
-                navigator.clipboard.writeText(shareTextArea.value).then(() => {
-                    copyBtn.innerHTML = '<i class="bi bi-clipboard-check-fill text-success"></i> Đã chép!';
+            if (prevBtn) prevBtn.addEventListener('click', () => {
+                const currentVisibleIndex = visibleNavBoxes.indexOf(allNavBoxes[currentQuestionIndex]);
+                if (currentVisibleIndex > 0) {
+                    const prevQuestionGlobalIndex = parseInt(visibleNavBoxes[currentVisibleIndex - 1].dataset.questionIndex, 10);
+                    showQuestion(prevQuestionGlobalIndex);
+                }
+            });
+            
+            allNavBoxes.forEach(box => {
+                box.addEventListener('click', function () {
+                    const index = parseInt(this.dataset.questionIndex, 10);
+                    showQuestion(index);
                 });
             });
-        }
-    });
+
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    if (reviewContainer && reviewContainer.classList.contains('d-none')) {
+                        reviewContainer.classList.remove('d-none');
+                        navPanel.classList.remove('d-none');
+                        offcanvasPanel.classList.remove('d-none');
+                        reviewContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }        
+
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+
+                    const filter = this.dataset.filter;
+                    visibleNavBoxes = []; // Reset lại danh sách
+
+                    allNavBoxes.forEach(navBox => {
+                        let show = false;
+                        if (filter === 'all') {
+                            show = true;
+                        } else if (filter === 'correct' && navBox.classList.contains('correct-result')) {
+                            show = true;
+                        } else if (filter === 'incorrect' && navBox.classList.contains('incorrect-result')) {
+                            show = true;
+                        }
+                        navBox.style.display = show ? 'flex' : 'none';
+                        if (show) {
+                            visibleNavBoxes.push(navBox);
+                        }
+                    });
+
+                    if (visibleNavBoxes.length > 0) {
+                        const firstVisibleQuestionIndex = parseInt(visibleNavBoxes[0].dataset.questionIndex, 10);
+                        showQuestion(firstVisibleQuestionIndex);
+                    } else {
+                        questionContainers.forEach(container => container.classList.add('d-none'));
+                    }
+                });
+            });
+
+            if (totalQuestions > 0) {
+                showQuestion(0);
+            }
+
+            // === PHẦN VẼ BIỂU ĐỒ VÀ CHIA SẺ (LOGIC MỚI, ĐƠN GIẢN HƠN) ===
+            const userScore = parseFloat('{{ attempt.score_achieved|default:0|stringformat:".2f" }}');
+            const maxScore = parseFloat('{{ attempt.quiz.scoring_scale_max|default:100|stringformat:".2f" }}');
+            const chartCanvas = document.getElementById('scoreChart');
+            if (chartCanvas) {
+                new Chart(chartCanvas, {
+                    type: 'doughnut',
+                    data: { datasets: [{ data: [userScore, Math.max(0, maxScore - userScore)], backgroundColor: ['#198754', '#e9ecef'], borderWidth: 0 }] },
+                    options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: false }, tooltip: { enabled: false } } }
+                });
+            }
+
+            const shareBtn = document.getElementById('share-result-btn');
+            if (shareBtn) {
+                const shareModalEl = document.getElementById('shareResultModal');
+                const shareModal = new bootstrap.Modal(shareModalEl);
+                const shareTextArea = document.getElementById('share-text-content');
+                const copyBtn = document.getElementById('copy-share-text-btn');
+
+                async function handleShare() {
+                    const nodeToCapture = document.getElementById('result-card-to-capture');
+                    try {
+                        const dataUrl = await htmlToImage.toPng(nodeToCapture, { quality: 0.95, pixelRatio: 2 });
+                        const blob = await (await fetch(dataUrl)).blob();
+                        const file = new File([blob], "ket-qua-thi.png", { type: "image/png" });
+
+                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                            await navigator.share({
+                                files: [file],
+                                title: 'Kết quả thi MinTest của tôi!',
+                                text: 'Đây là kết quả bài thi của tôi trên MinTest.',
+                            });
+                            return;
+                        }
+                    } catch (err) {
+                        console.error("Lỗi khi chia sẻ ảnh, chuyển sang phương án dự phòng:", err);
+                    }
+
+                    // Phương án dự phòng: Chia sẻ văn bản
+                    const quizName = '{{ share_quiz_name|escapejs }}';
+                    const url = '{{ homepage_url }}';
+                    const accessCode = '{{ share_access_code|default:"" }}';
+                    let fallbackText = `📝 Tôi vừa hoàn thành đề thi "${quizName}" với kết quả ${userScore}/${maxScore}!\n\n`;
+                    if (accessCode) {
+                        fallbackText += `Mã tham gia đề thi này là: ${accessCode}\n\n`;
+                    }
+                    fallbackText += `Bạn cũng có thể thử sức tại đây:\n${url}`;
+                    
+                    shareTextArea.value = fallbackText;
+                    copyBtn.innerHTML = '<i class="bi bi-clipboard"></i> Sao chép nội dung';
+                    shareModal.show();
+                }
+
+                shareBtn.addEventListener('click', handleShare);
+                
+                copyBtn.addEventListener('click', function() {
+                    shareTextArea.select();
+                    navigator.clipboard.writeText(shareTextArea.value).then(() => {
+                        copyBtn.innerHTML = '<i class="bi bi-clipboard-check-fill text-success"></i> Đã chép!';
+                    });
+                });
+            }
+        });
     </script>
 {% endblock %}
