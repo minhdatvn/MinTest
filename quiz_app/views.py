@@ -836,56 +836,20 @@ def start_quiz(request, quiz_id):
     except Quiz.DoesNotExist:
         raise Http404("Không tìm thấy đề thi này.")
 
-    # === BƯỚC 2: KIỂM TRA QUYỀN TRUY CẬP MỚI ===
-    # Người dùng có quyền nếu họ là chủ sở hữu HOẶC có trong danh sách tham gia
+    # Bước 2: KIỂM TRA QUYỀN TRUY CẬP MỚI
     is_owner = template_quiz.user == request.user
     is_enrolled = request.user in template_quiz.enrolled_users.all()
 
     if not (is_owner or is_enrolled):
-        # Nếu không có cả hai quyền trên, báo lỗi cấm truy cập
         raise PermissionDenied("Bạn không có quyền làm bài thi này.")
-    # ===============================================
 
-    quiz_for_attempt = template_quiz
-    question_ids_for_attempt = []
+    # THAY THẾ TOÀN BỘ KHỐI IF/ELIF CŨ BẰNG 2 DÒNG NÀY
+    quiz_for_attempt, question_ids_for_attempt = template_quiz.create_snapshot_if_dynamic(request.user)
 
-    if template_quiz.quiz_type == "static":
-        question_ids_for_attempt = list(
-            template_quiz.questions.all().values_list("id", flat=True)
-        )
-
-    elif template_quiz.quiz_type == "dynamic":
-        rules = template_quiz.rules.all()
-        final_question_ids = []
-        for rule in rules:
-            available_ids = list(
-                Question.objects.filter(topic=rule.topic).values_list("id", flat=True)
-            )
-            count = min(rule.question_count, len(available_ids))
-            if count > 0:
-                final_question_ids.extend(random.sample(available_ids, count))
-
-        if not final_question_ids:
-            messages.error(
-                request,
-                "Đề thi động này không thể tạo vì các chủ đề đã chọn không có câu hỏi nào.",
-            )
-            return redirect("quiz_list")
-
-        # Tạo snapshot
-        snapshot_quiz = Quiz.objects.create(
-            user=request.user,
-            quiz_name=f"{template_quiz.quiz_name} - Lượt thi lúc {timezone.now().strftime('%H:%M %d/%m')}",
-            quiz_type="static",
-            time_limit_minutes=template_quiz.time_limit_minutes,
-            scoring_scale_max=template_quiz.scoring_scale_max,
-            is_snapshot=True,
-            template_for=template_quiz,
-        )
-        snapshot_quiz.questions.set(final_question_ids)
-
-        quiz_for_attempt = snapshot_quiz
-        question_ids_for_attempt = final_question_ids
+    # Nếu đề thi động không có câu hỏi nào
+    if quiz_for_attempt is None:
+        messages.error(request, "Đề thi động này không thể tạo vì các chủ đề đã chọn không có câu hỏi nào.")
+        return redirect("quiz_list")
 
     # Xáo trộn và tạo lượt làm bài
     random.shuffle(question_ids_for_attempt)
@@ -1704,47 +1668,13 @@ def guest_start_quiz(request):
         messages.error(request, "Không có thông tin đề thi. Vui lòng thử lại.")
         return redirect("guest_homepage")
 
-    # ------ Bắt đầu logic tạo snapshot (tương tự view start_quiz) ------
-    quiz_for_attempt = template_quiz
-    question_ids_for_attempt = []
-
-    if template_quiz.quiz_type == "static":
-        question_ids_for_attempt = list(
-            template_quiz.questions.all().values_list("id", flat=True)
-        )
-
-    elif template_quiz.quiz_type == "dynamic":
-        rules = template_quiz.rules.all()
-        final_question_ids = []
-        for rule in rules:
-            available_ids = list(
-                Question.objects.filter(topic=rule.topic).values_list("id", flat=True)
-            )
-            count = min(rule.question_count, len(available_ids))
-            if count > 0:
-                final_question_ids.extend(random.sample(available_ids, count))
-
-        if not final_question_ids:
-            messages.error(
-                request,
-                "Đề thi này hiện không có câu hỏi để làm bài. Vui lòng thử lại sau.",
-            )
-            return redirect("guest_homepage")
-
-        # Tạo snapshot
-        snapshot_quiz = Quiz.objects.create(
-            user=template_quiz.user,  # Snapshot vẫn thuộc về Creator
-            quiz_name=f"{template_quiz.quiz_name} - Lượt thi của khách",
-            quiz_type="static",
-            time_limit_minutes=template_quiz.time_limit_minutes,
-            scoring_scale_max=template_quiz.scoring_scale_max,
-            is_snapshot=True,
-            template_for=template_quiz,
-        )
-        snapshot_quiz.questions.set(final_question_ids)
-
-        quiz_for_attempt = snapshot_quiz
-        question_ids_for_attempt = final_question_ids
+    # ------ Bắt đầu logic tạo snapshot ------
+    quiz_for_attempt, question_ids_for_attempt = template_quiz.create_snapshot_if_dynamic(template_quiz.user)
+    
+    # Nếu đề thi động không có câu hỏi
+    if quiz_for_attempt is None:
+        messages.error(request, "Đề thi này hiện không có câu hỏi để làm bài. Vui lòng thử lại sau.")
+        return redirect("guest_homepage")
     # ------ Kết thúc logic tạo snapshot ------
 
     # Xáo trộn thứ tự câu hỏi

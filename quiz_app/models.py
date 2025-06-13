@@ -1,7 +1,9 @@
 # quiz_project/quiz_app/models.py
 
 from django.db import models
+from django.utils import timezone
 from django.contrib.auth.models import User
+import random
 
 class TopicGroup(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -107,6 +109,44 @@ class Quiz(models.Model):
 
     def __str__(self):
         return self.quiz_name
+    
+    def create_snapshot_if_dynamic(self, user_for_attempt):
+        """
+        Nếu đây là đề thi động, hãy tạo một snapshot tĩnh.
+        Trả về (quiz_for_attempt, question_ids_for_attempt).
+        Nếu là đề tĩnh, trả về chính nó.
+        Nếu đề động không có câu hỏi, trả về (None, []).
+        """
+        if self.quiz_type == 'static':
+            question_ids = list(self.questions.values_list('id', flat=True))
+            return self, question_ids
+
+        # Logic cho đề thi động
+        rules = self.rules.all()
+        final_question_ids = []
+        for rule in rules:
+            # Lấy danh sách ID câu hỏi có sẵn trong chủ đề
+            available_ids = list(Question.objects.filter(topic=rule.topic).values_list("id", flat=True))
+            # Số lượng câu hỏi cần lấy không thể lớn hơn số câu hỏi có sẵn
+            count = min(rule.question_count, len(available_ids))
+            if count > 0:
+                final_question_ids.extend(random.sample(available_ids, count))
+
+        if not final_question_ids:
+            return None, [] # Trả về None nếu không tạo được câu hỏi
+
+        snapshot_quiz = Quiz.objects.create(
+            user=self.user, # Snapshot vẫn thuộc về người tạo đề gốc
+            quiz_name=f"{self.quiz_name} - Lượt thi lúc {timezone.now().strftime('%H:%M %d/%m')}",
+            quiz_type='static',
+            time_limit_minutes=self.time_limit_minutes,
+            scoring_scale_max=self.scoring_scale_max,
+            is_snapshot=True,
+            template_for=self,
+        )
+        snapshot_quiz.questions.set(final_question_ids)
+        return snapshot_quiz, final_question_ids
+
 
 class QuizQuestion(models.Model):
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)
