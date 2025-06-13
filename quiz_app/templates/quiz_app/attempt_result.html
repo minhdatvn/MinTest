@@ -421,27 +421,32 @@
                 const url = '{{ homepage_url }}';
 
                 // Xây dựng nội dung chia sẻ
-                let shareText = `📝 Tôi vừa hoàn thành đề thi "${quizName}" với kết quả ${score}/${maxScore}!\n\n`;
+                // 1. Tạo nội dung chữ KHÔNG chứa link
+                let textForApi = `📝 Tôi vừa hoàn thành đề thi "${quizName}" với kết quả ${score}/${maxScore}!`;
+
+                // 2. Tạo nội dung đầy đủ cho phương án dự phòng (copy/paste)
+                let textForClipboard = `📝 Tôi vừa hoàn thành đề thi "${quizName}" với kết quả ${score}/${maxScore}!\n\n`;
                 if (accessCode) {
-                    shareText += `Mã tham gia đề thi này là: ${accessCode}\n\n`;
+                    textForClipboard += `Mã tham gia đề thi này là: ${accessCode}\n\n`;
                 }
-                shareText += `Bạn cũng có thể thử sức tại đây: ${url}`;
-                
+                textForClipboard += `Bạn cũng có thể thử sức tại đây: ${url}`;
+
+                // 3. Xây dựng đối tượng chia sẻ với các thuộc tính riêng biệt
                 const shareData = {
                     title: 'Kết quả thi trắc nghiệm',
-                    text: shareText,
-                    // url: url // Bạn có thể bỏ qua url ở đây vì nó đã có trong text
+                    text: textForApi, // Dùng nội dung không có link
+                    url: url,        // Cung cấp link riêng
                 };
 
-                // Kiểm tra xem trình duyệt có hỗ trợ Web Share API không
                 if (navigator.share) {
+                    // API sẽ tự kết hợp 'text' và 'url'
                     navigator.share(shareData).catch((err) => {
                         console.error("Lỗi khi chia sẻ:", err);
                     });
                 } else {
-                    // Nếu không hỗ trợ, hiện modal để copy/paste
-                    shareTextArea.value = shareText;
-                    copyBtn.innerHTML = '<i class="bi bi-clipboard"></i> Sao chép nội dung'; // Reset trạng thái nút
+                    // Phương án dự phòng vẫn dùng nội dung đầy đủ
+                    shareTextArea.value = textForClipboard;
+                    copyBtn.innerHTML = '<i class="bi bi-clipboard"></i> Sao chép nội dung';
                     shareModal.show();
                 }
             });
