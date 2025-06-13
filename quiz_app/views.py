@@ -915,10 +915,6 @@ def take_quiz(request, attempt_id):
         return redirect("attempt_result", attempt_id=attempt.id)
     # === KẾT THÚC LOGIC MỚI ===
 
-    # === LOGIC XÁO TRỘN CÂU HỎI MỚI ===
-    questions_list = list(quiz.questions.all())
-    # =================================
-
     # === LOGIC MỚI: LẤY CÂU HỎI THEO THỨ TỰ ĐÃ LƯU ===
     ordered_ids = json.loads(attempt.question_order)
     # Xây dựng một truy vấn để sắp xếp các câu hỏi theo đúng thứ tự trong list ordered_ids
@@ -1640,18 +1636,28 @@ def guest_homepage_view(request):
     if request.user.is_authenticated:
         return redirect("dashboard")
 
-    # Lấy tất cả các đề thi được đánh dấu là công khai
+    # Xử lý yêu cầu POST (đăng nhập)
+    if request.method == 'POST':
+        login_form = CustomAuthenticationForm(request, data=request.POST)
+        if login_form.is_valid():
+            user = login_form.get_user()
+            login(request, user)
+            # Chuyển hướng đến dashboard sau khi đăng nhập thành công
+            return redirect('dashboard')
+        # Nếu form không hợp lệ, luồng sẽ tiếp tục xuống dưới và render lại trang với form lỗi
+    else:
+        # Nếu là yêu cầu GET, tạo một form trống
+        login_form = CustomAuthenticationForm()
+
+    # Lấy dữ liệu cho trang (giữ nguyên)
     public_quizzes = Quiz.objects.filter(is_public=True, is_snapshot=False).annotate(
         question_count=Count('questions')
     ).order_by('-created_at')[:4]
-
-    # Chuẩn bị sẵn các form cho template
-    login_form = CustomAuthenticationForm()
     enroll_form = EnrollmentForm()
 
     context = {
         "public_quizzes": public_quizzes,
-        "login_form": login_form,
+        "login_form": login_form, # form này có thể trống hoặc chứa lỗi
         "enroll_form": enroll_form,
     }
     return render(request, "quiz_app/guest_homepage.html", context)

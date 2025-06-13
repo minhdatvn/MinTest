@@ -79,6 +79,9 @@
             min-width: 80px; /* Đặt chiều rộng tối thiểu */
             text-align: right; /* Căn phải để số trông đẹp hơn khi co giãn */
         }
+        .question-text, .answer-text {
+            font-size: 1.1rem; /* Đặt cỡ chữ mong muốn ở đây */
+        }
     </style>
 
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
@@ -113,7 +116,7 @@
                 <div class="question-container {% if not forloop.first %}d-none{% endif %}" id="question-container-{{ forloop.counter0 }}">
                     <div class="card mb-4">
                         <div class="card-header">
-                            <strong class="fs-5">Câu <span class="question-number-display">{{ forloop.counter }}</span>:</strong>
+                            <strong>Câu <span class="question-number-display">{{ forloop.counter }}</span>:</strong>
                             {# === Đánh dấu lá cờ === #}
                             <button type="button" class="btn btn-sm btn-outline-secondary rounded-circle float-end flag-btn" title="Đánh dấu để xem lại" data-question-index="{{ forloop.counter0 }}">
                                 <i class="bi bi-flag"></i>
@@ -121,7 +124,7 @@
                             </button>
                         </div>
                         <div class="card-body">
-                            <p class="card-text fs-5 no-select">{{ question.question_text }}</p>
+                            <p class="card-text question-text no-select">{{ question.question_text }}</p>
                             <p class="form-text">
                                 <i>
                                     {% if question.question_type == 'multiple_choice' %}
@@ -146,7 +149,7 @@
                                             <input class="form-check-input answer-input" type="checkbox" name="question_{{ question.id }}" value="{{ answer.id }}" id="ans_{{ answer.id }}" data-question-index="{{ forloop.parentloop.counter0 }}">
                                         {% endif %}
                                         
-                                        <label class="form-check-label no-select" for="ans_{{ answer.id }}">
+                                        <label class="form-check-label answer-text no-select" for="ans_{{ answer.id }}">
                                             {{ forloop.counter0|to_char }}.
                                             {{ answer.answer_text }}
                                         </label>

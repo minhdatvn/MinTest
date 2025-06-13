@@ -124,11 +124,6 @@ urlpatterns = [
         name="delete_attempt",
     ),  # Xóa Lịch sử làm bài
     path("signup/", views.signup_view, name="signup"),  # Đăng ký
-    path(
-        "login/",
-        auth_views.LoginView.as_view(template_name="quiz_app/login.html"),
-        name="login",
-    ),  # Đăng nhập
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),  # Đăng xuất
     path(
         "reports/", views.quiz_report_list_view, name="quiz_report_list"

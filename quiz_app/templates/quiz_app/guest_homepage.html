@@ -97,7 +97,7 @@
                 <div class="card">
                     <div class="card-body p-4">
                         <h4 class="card-title text-center">Đăng nhập</h4>
-                        <form action="{% url 'login' %}" method="post">
+                        <form action="{% url 'guest_homepage' %}" method="post">
                         {% csrf_token %}
 
                         {% if login_form.non_field_errors %}
