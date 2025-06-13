@@ -133,6 +133,7 @@ urlpatterns = [
         views.quiz_detail_report_view,
         name="quiz_detail_report",
     ),  # Báo cáo chi tiết
+    path('ajax/login/', views.ajax_login_view, name='ajax_login'), #Xử lý yêu cầu đăng nhập
 ]
 
 handler400 = bad_request

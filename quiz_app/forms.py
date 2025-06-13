@@ -312,7 +312,7 @@ class CustomAuthenticationForm(AuthenticationForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['username'].widget.attrs.pop('autofocus', None)
-
+        self.error_messages['invalid_login'] = 'Vui lòng nhập đúng tên đăng nhập và mật khẩu. Lưu ý rằng các trường có thể phân biệt chữ hoa, chữ thường.'
         # Thêm placeholder cho cả hai trường
         self.fields['username'].widget.attrs.update(
             {'class': 'form-control', 'placeholder': 'Tên đăng nhập'}

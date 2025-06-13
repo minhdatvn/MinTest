@@ -96,36 +96,11 @@
                 <h2 class="text-center mb-4">Dành cho Thành viên</h2>
                 <div class="card">
                     <div class="card-body p-4">
-                        <h4 class="card-title text-center">Đăng nhập</h4>
-                        <form action="{% url 'guest_homepage' %}" method="post">
-                        {% csrf_token %}
-
-                        {% if login_form.non_field_errors %}
-                            <div class="alert alert-danger p-2 small">
-                                {% for error in login_form.non_field_errors %} {{ error }} {% endfor %}
-                            </div>
-                        {% endif %}
-
-                        <div class="form-floating mb-3">
-                            {{ login_form.username }}
-                            <label for="{{ login_form.username.id_for_label }}">Tên đăng nhập</label>
-                            {% if login_form.username.errors %}
-                                <div class="form-text text-danger small">{{ login_form.username.errors|striptags }}</div>
-                            {% endif %}
+                        {# Div này đóng vai trò là "mục tiêu" để HTMX thay thế nội dung #}
+                        <div id="login-form-wrapper">
+                            {# Tải form đăng nhập từ một file riêng #}
+                            {% include 'quiz_app/_login_form.html' %}
                         </div>
-
-                        <div class="form-floating mb-3">
-                            {{ login_form.password }}
-                            <label for="{{ login_form.password.id_for_label }}">Mật khẩu</label>
-                            {% if login_form.password.errors %}
-                                <div class="form-text text-danger small">{{ login_form.password.errors|striptags }}</div>
-                            {% endif %}
-                        </div>
-
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary mt-3">Đăng nhập</button>
-                        </div>
-                    </form>
                         <p class="text-center mt-3 mb-0">
                             Chưa có tài khoản? <a href="{% url 'signup' %}">Đăng ký ngay</a>
                         </p>

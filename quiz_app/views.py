@@ -2,6 +2,7 @@
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
+from django.urls import reverse
 from django.http import HttpResponse
 from django.core.paginator import Paginator
 from django.core.exceptions import PermissionDenied
@@ -1632,22 +1633,17 @@ def quiz_detail_report_view(request, quiz_id):
 
 # --- Trang Khách ---
 def guest_homepage_view(request):
-    # Nếu người dùng đã đăng nhập, chuyển thẳng đến dashboard
     if request.user.is_authenticated:
         return redirect("dashboard")
 
-    # Xử lý yêu cầu POST (đăng nhập)
     if request.method == 'POST':
         login_form = CustomAuthenticationForm(request, data=request.POST)
         if login_form.is_valid():
             user = login_form.get_user()
             login(request, user)
-            # Chuyển hướng đến dashboard sau khi đăng nhập thành công
             return redirect('dashboard')
-        # Nếu form không hợp lệ, luồng sẽ tiếp tục xuống dưới và render lại trang với form lỗi
     else:
-        # Nếu là yêu cầu GET, tạo một form trống
-        login_form = CustomAuthenticationForm()
+        login_form = CustomAuthenticationForm
 
     # Lấy dữ liệu cho trang (giữ nguyên)
     public_quizzes = Quiz.objects.filter(is_public=True, is_snapshot=False).annotate(
@@ -1778,3 +1774,27 @@ def guest_start_quiz(request):
 
     # Chuyển hướng đến trang làm bài
     return redirect("take_quiz", attempt_id=new_attempt.id)
+
+# --- Yêu cầu đăng nhập ---
+def ajax_login_view(request):
+    """
+    Xử lý yêu cầu đăng nhập từ HTMX.
+    - Nếu thành công: Trả về một response đặc biệt để HTMX tự chuyển hướng trang.
+    - Nếu thất bại: Render lại chỉ form đăng nhập với lỗi và trả về.
+    """
+    if request.method == "POST":
+        form = CustomAuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            login(request, user)
+            # Tạo một response trống và đặt header HX-Redirect
+            # HTMX sẽ nhận diện header này và tự động chuyển hướng đến dashboard
+            response = HttpResponse(status=204)
+            response['HX-Redirect'] = reverse('dashboard')
+            return response
+        else:
+            # Nếu form không hợp lệ, render lại chỉ phần form với các lỗi
+            # và trả về cho HTMX để thay thế vào trang
+            return render(request, 'quiz_app/_login_form.html', {'login_form': form})
+    # Trả về lỗi nếu không phải là POST request
+    return HttpResponse("Yêu cầu không hợp lệ", status=400)
