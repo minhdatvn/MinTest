@@ -102,6 +102,8 @@ class Quiz(models.Model):
     )
     # === TRƯỜNG MỚI CHO TÍNH NĂNG CÔNG KHAI ===
     is_public = models.BooleanField(default=False)
+    # === TRƯỜNG MỚI CHO TÍNH NĂNG ACTIVE/UNACTIVE ===
+    is_active = models.BooleanField(default=True)
     
     class Meta:
         verbose_name = "Đề thi"

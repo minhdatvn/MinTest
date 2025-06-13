@@ -835,6 +835,9 @@ def start_quiz(request, quiz_id):
         template_quiz = Quiz.objects.get(id=quiz_id, is_snapshot=False)
     except Quiz.DoesNotExist:
         raise Http404("Không tìm thấy đề thi này.")
+    if not template_quiz.is_active:
+        messages.error(request, 'Đề thi này đã bị tạm dừng do nội dung không còn hợp lệ.')
+        return redirect('quiz_list')
 
     # Bước 2: KIỂM TRA QUYỀN TRUY CẬP MỚI
     is_owner = template_quiz.user == request.user
@@ -1637,7 +1640,6 @@ def public_quiz_list_view(request):
 def guest_start_quiz(request):
     if request.method != "POST":
         return redirect("guest_homepage")
-
     quiz_id = request.POST.get("quiz_id")
     access_code = request.POST.get("access_code")
     guest_name = request.POST.get("guest_name", "Khách").strip()
@@ -1647,25 +1649,22 @@ def guest_start_quiz(request):
         return redirect("guest_homepage")
 
     template_quiz = None
-
-    # Tìm đề thi dựa trên ID (từ modal) hoặc mã truy cập (từ form)
-    if quiz_id:
-        try:
-            template_quiz = Quiz.objects.get(
-                id=quiz_id, is_public=True, is_snapshot=False
-            )
-        except Quiz.DoesNotExist:
-            raise Http404("Không tìm thấy đề thi công khai này.")
-    elif access_code:
-        try:
-            template_quiz = Quiz.objects.get(
-                access_code=access_code.upper(), is_snapshot=False
-            )
-        except Quiz.DoesNotExist:
-            messages.error(request, "Mã tham gia không hợp lệ. Vui lòng kiểm tra lại.")
+    try:
+        # Nếu khách bắt đầu từ một đề thi công khai
+        if quiz_id:
+            # Truy vấn phải thỏa mãn TẤT CẢ: public, không phải snapshot, VÀ PHẢI ACTIVE
+            template_quiz = Quiz.objects.get(id=quiz_id, is_public=True, is_snapshot=False, is_active=True)
+        # Nếu khách bắt đầu bằng mã truy cập
+        elif access_code:
+            # Truy vấn phải thỏa mãn: không phải snapshot VÀ PHẢI ACTIVE
+            template_quiz = Quiz.objects.get(access_code=access_code.upper(), is_snapshot=False, is_active=True)
+        # Nếu không có cả hai
+        else:
+            messages.error(request, "Không có thông tin đề thi. Vui lòng thử lại.")
             return redirect("guest_homepage")
-    else:
-        messages.error(request, "Không có thông tin đề thi. Vui lòng thử lại.")
+    except Quiz.DoesNotExist:
+        # Bất kỳ truy vấn nào ở trên thất bại (không tìm thấy hoặc is_active=False) sẽ nhảy vào đây
+        messages.error(request, "Đề thi này không tồn tại hoặc đã bị tạm dừng.")
         return redirect("guest_homepage")
 
     # ------ Bắt đầu logic tạo snapshot ------

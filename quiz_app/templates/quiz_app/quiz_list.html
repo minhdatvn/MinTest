@@ -74,29 +74,43 @@
     </thead>
     <tbody>
       {% for quiz in static_quizzes %}
-      <tr>
-        <td><strong>{{ quiz.quiz_name }}</strong></td>
-        <td>{{ quiz.question_count }}</td>
-        <td>{{ quiz.time_limit_minutes }}</td>
-        <td>{{ quiz.created_at|date:"d/m/Y" }}</td>
-        <td class="text-end">
-          <a href="{% url 'start_quiz' quiz.id %}" class="btn btn-sm btn-link text-success" data-bs-toggle="tooltip" data-bs-placement="top" title="Làm bài">
-              <i class="bi bi-play-circle-fill fs-5"></i>
-          </a>
-      
-          {% if perms.quiz_app.change_quiz %}
-              <button type="button" class="btn btn-sm btn-link text-info share-quiz-btn" data-quiz-id="{{ quiz.id }}" data-bs-toggle="tooltip" data-bs-placement="top" title="Chia sẻ">
-                  <i class="bi bi-share-fill fs-5"></i>
-              </button>
-          {% endif %}
-      
-          {% if perms.quiz_app.delete_quiz %}
-              <button type="button" class="btn btn-sm btn-link text-danger delete-quiz-btn" data-delete-url="{% url 'delete_quiz' quiz.id %}" data-bs-toggle="tooltip" data-bs-placement="top" title="Xóa">
-                  <i class="bi bi-trash-fill fs-5"></i>
-              </button>
-          {% endif %}
-        </td>
-      </tr>
+        {# Thêm class 'table-warning' để làm nổi bật hàng bị vô hiệu hóa #}
+        <tr class="{% if not quiz.is_active %}table-warning text-muted{% endif %}">
+            <td>
+                <strong>{{ quiz.quiz_name }}</strong>
+                {% if not quiz.is_active %}
+                    <span class="badge bg-danger">Đã vô hiệu hóa</span>
+                {% endif %}
+            </td>
+            <td>{{ quiz.question_count }}</td>
+            <td>{{ quiz.time_limit_minutes }}</td>
+            <td>{{ quiz.created_at|date:"d/m/Y" }}</td>
+            <td class="text-end">
+                {% if quiz.is_active %}
+                    {# GIỮ NGUYÊN CÁC NÚT CHO ĐỀ THI HOẠT ĐỘNG #}
+                    <a href="{% url 'start_quiz' quiz.id %}" class="btn btn-sm btn-link text-success" title="Làm bài">
+                        <i class="bi bi-play-circle-fill fs-5"></i>
+                    </a>
+                    {% if perms.quiz_app.change_quiz %}
+                        <button type="button" class="btn btn-sm btn-link text-info share-quiz-btn" data-quiz-id="{{ quiz.id }}" title="Chia sẻ">
+                            <i class="bi bi-share-fill fs-5"></i>
+                        </button>
+                    {% endif %}
+                {% else %}
+                    {# HIỂN THỊ NÚT BỊ VÔ HIỆU HÓA #}
+                    <button class="btn btn-sm btn-link text-secondary" disabled title="Đề thi đã bị tạm dừng">
+                        <i class="bi bi-play-circle-fill fs-5"></i>
+                    </button>
+                {% endif %}
+
+                {# Nút xóa luôn hiển thị #}
+                {% if perms.quiz_app.delete_quiz %}
+                    <button type="button" class="btn btn-sm btn-link text-danger delete-quiz-btn" data-delete-url="{% url 'delete_quiz' quiz.id %}" title="Xóa">
+                        <i class="bi bi-trash-fill fs-5"></i>
+                    </button>
+                {% endif %}
+            </td>
+        </tr>
       {% empty %}
       <tr>
         <td colspan="5" class="text-center p-4">
