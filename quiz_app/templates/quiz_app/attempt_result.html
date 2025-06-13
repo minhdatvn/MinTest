@@ -104,16 +104,25 @@
             </div>
         </div>
 
-       <div class="text-center my-4">
+        <div class="text-center my-4">
             <div class="mb-3">
+                {# Nút Làm lại (không đổi) #}
                 <a href="{% url 'start_quiz' attempt.quiz.template_for.id|default:attempt.quiz.id %}" class="btn btn-primary d-inline-flex align-items-center" title="Làm lại bài thi này">
                     <i class="bi bi-arrow-clockwise"></i>
                     <span class="ms-1">Làm lại</span>
                 </a>
-
-                <a href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'guest_homepage' %}{% endif %}" class="btn btn-secondary ms-2" title="Quay lại trang chính">
-                    <i class="bi bi-house-door-fill"></i> Quay về Trang chủ
+            
+                {# Nút Trang chủ (đã sửa text) #}
+                <a href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'guest_homepage' %}{% endif %}" class="btn btn-secondary ms-2 d-inline-flex align-items-center" title="Quay lại trang chính">
+                    <i class="bi bi-house-door-fill"></i>
+                    <span class="ms-1">Trang chủ</span>
                 </a>
+            
+                {# NÚT CHIA SẺ MỚI #}
+                <button type="button" id="share-result-btn" class="btn btn-info ms-2 d-inline-flex align-items-center" title="Chia sẻ kết quả">
+                    <i class="bi bi-share-fill"></i>
+                    <span class="ms-1">Chia sẻ</span>
+                </button>
             </div>
 
             <div class="d-inline-flex align-items-center">
@@ -205,6 +214,27 @@
                         {{ forloop.counter }}
                     </div>
                 {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    {# MODAL DỰ PHÒNG CHO VIỆC CHIA SẺ #}
+    <div class="modal fade" id="shareResultModal" tabindex="-1" aria-labelledby="shareResultModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="shareResultModalLabel">Chia sẻ kết quả của bạn</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Trình duyệt của bạn không hỗ trợ chia sẻ trực tiếp. Vui lòng sao chép nội dung dưới đây và dán vào nơi bạn muốn chia sẻ.</p>
+                    <textarea id="share-text-content" class="form-control" rows="6" readonly></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="copy-share-text-btn" class="btn btn-primary">
+                        <i class="bi bi-clipboard"></i> Sao chép nội dung
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -372,8 +402,60 @@
                     // Có thể hiển thị một thông báo ở đây nếu muốn
                 }
             });
-        });        
+        });
+        
+        // --- PHẦN 4: LOGIC CHO NÚT CHIA SẺ ---
+        const shareBtn = document.getElementById('share-result-btn');
+        if (shareBtn) {
+            const shareModalEl = document.getElementById('shareResultModal');
+            const shareModal = new bootstrap.Modal(shareModalEl);
+            const shareTextArea = document.getElementById('share-text-content');
+            const copyBtn = document.getElementById('copy-share-text-btn');
 
+            shareBtn.addEventListener('click', function() {
+                // Lấy dữ liệu từ template Django
+                const score = '{{ attempt.score_achieved|floatformat:2 }}';
+                const maxScore = '{{ attempt.quiz.scoring_scale_max }}';
+                const quizName = '{{ attempt.quiz.quiz_name|escapejs }}';
+                const accessCode = '{{ attempt.quiz.access_code|default:"" }}';
+                const url = '{{ homepage_url }}';
+
+                // Xây dựng nội dung chia sẻ
+                let shareText = `📝 Tôi vừa hoàn thành đề thi "${quizName}" với kết quả ${score}/${maxScore}!\n\n`;
+                if (accessCode) {
+                    shareText += `Mã tham gia đề thi này là: ${accessCode}\n\n`;
+                }
+                shareText += `Bạn cũng có thể thử sức tại đây: ${url}`;
+                
+                const shareData = {
+                    title: 'Kết quả thi trắc nghiệm',
+                    text: shareText,
+                    // url: url // Bạn có thể bỏ qua url ở đây vì nó đã có trong text
+                };
+
+                // Kiểm tra xem trình duyệt có hỗ trợ Web Share API không
+                if (navigator.share) {
+                    navigator.share(shareData).catch((err) => {
+                        console.error("Lỗi khi chia sẻ:", err);
+                    });
+                } else {
+                    // Nếu không hỗ trợ, hiện modal để copy/paste
+                    shareTextArea.value = shareText;
+                    copyBtn.innerHTML = '<i class="bi bi-clipboard"></i> Sao chép nội dung'; // Reset trạng thái nút
+                    shareModal.show();
+                }
+            });
+
+            // Gắn sự kiện cho nút sao chép trong modal
+            copyBtn.addEventListener('click', function() {
+                shareTextArea.select();
+                navigator.clipboard.writeText(shareTextArea.value).then(() => {
+                    copyBtn.innerHTML = '<i class="bi bi-clipboard-check-fill text-success"></i> Đã chép!';
+                }).catch(err => {
+                    console.error('Không thể sao chép:', err);
+                });
+            });
+        }
     });
     </script>
 {% endblock %}

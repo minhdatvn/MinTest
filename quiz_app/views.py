@@ -1010,10 +1010,12 @@ def attempt_result(request, attempt_id):
         preserved_order
     )
     # === KẾT THÚC PHẦN SỬA ĐỔI LOGIC SẮP XẾP ===
+    homepage_url = request.build_absolute_uri(reverse('guest_homepage'))
+
     context = {
         "attempt": attempt,
-        # 4. Truyền queryset đã được sắp xếp vào context
         "ordered_answered_questions": ordered_answered_questions,
+        "homepage_url": homepage_url, # << THÊM DÒNG NÀY
     }
     return render(request, "quiz_app/attempt_result.html", context)
 
