@@ -4,6 +4,7 @@
 {% block title %}Kết quả: {{ attempt.quiz.quiz_name }}{% endblock %}
 
 {% block content %}
+    <div style="display:none;">{% csrf_token %}</div>
     <style>
         body {
             /* Thêm padding-bottom để thanh điều hướng không che mất nội dung */
@@ -404,54 +405,72 @@
             });
         });
         
-        // --- PHẦN 4: LOGIC CHO NÚT CHIA SẺ ---
+        // --- PHẦN 4: LOGIC MỚI VÀ HOÀN CHỈNH CHO NÚT CHIA SẺ ---
         const shareBtn = document.getElementById('share-result-btn');
         if (shareBtn) {
             const shareModalEl = document.getElementById('shareResultModal');
             const shareModal = new bootstrap.Modal(shareModalEl);
             const shareTextArea = document.getElementById('share-text-content');
             const copyBtn = document.getElementById('copy-share-text-btn');
+            // Lấy CSRF token từ thẻ input ẩn mà chúng ta đã thêm
+            const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-            shareBtn.addEventListener('click', function() {
-                // Lấy dữ liệu từ template Django
+            // Chuyển hàm xử lý thành một hàm async để có thể dùng await
+            async function handleShare() {
+                // Lấy dữ liệu từ template
                 const score = '{{ attempt.score_achieved|floatformat:2 }}';
                 const maxScore = '{{ attempt.quiz.scoring_scale_max }}';
-                const quizName = '{{ attempt.quiz.quiz_name|escapejs }}';
-                const accessCode = '{{ attempt.quiz.access_code|default:"" }}';
+                const quizName = '{{ share_quiz_name|escapejs }}';
                 const url = '{{ homepage_url }}';
+                let accessCode = '{{ share_access_code|default:"" }}';
+                const quizIdForCode = '{{ code_generation_quiz_id }}';
 
-                // Xây dựng nội dung chia sẻ
-                // 1. Tạo nội dung chữ KHÔNG chứa link
+                // B1: KIỂM TRA VÀ TẠO MÃ NẾU CẦN
+                if (!accessCode) {
+                    console.log("Chưa có mã, đang tạo mã mới...");
+                    try {
+                        const response = await fetch(`/quizzes/${quizIdForCode}/generate-code/`, {
+                            method: 'POST',
+                            headers: { 'X-CSRFToken': csrftoken },
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            accessCode = data.code; // Cập nhật mã vừa tạo
+                            console.log("Đã tạo mã thành công:", accessCode);
+                        }
+                    } catch (err) {
+                        console.error("Lỗi khi tạo mã tự động:", err);
+                    }
+                }
+
+                // B2: XÂY DỰNG NỘI DUNG CHIA SẺ (với mã đã được cập nhật)
                 let textForApi = `📝 Tôi vừa hoàn thành đề thi "${quizName}" với kết quả ${score}/${maxScore}!`;
-
-                // 2. Tạo nội dung đầy đủ cho phương án dự phòng (copy/paste)
-                let textForClipboard = `📝 Tôi vừa hoàn thành đề thi "${quizName}" với kết quả ${score}/${maxScore}!\n\n`;
+                let textForClipboard = textForApi + '\n\n';
                 if (accessCode) {
                     textForClipboard += `Mã tham gia đề thi này là: ${accessCode}\n\n`;
                 }
                 textForClipboard += `Bạn cũng có thể thử sức tại đây: ${url}`;
 
-                // 3. Xây dựng đối tượng chia sẻ với các thuộc tính riêng biệt
+                // B3: TIẾN HÀNH CHIA SẺ
                 const shareData = {
                     title: 'Kết quả thi trắc nghiệm',
-                    text: textForApi, // Dùng nội dung không có link
-                    url: url,        // Cung cấp link riêng
+                    text: textForApi,
+                    url: url,
                 };
 
                 if (navigator.share) {
-                    // API sẽ tự kết hợp 'text' và 'url'
-                    navigator.share(shareData).catch((err) => {
-                        console.error("Lỗi khi chia sẻ:", err);
-                    });
+                    navigator.share(shareData).catch((err) => console.error("Lỗi khi chia sẻ:", err));
                 } else {
-                    // Phương án dự phòng vẫn dùng nội dung đầy đủ
                     shareTextArea.value = textForClipboard;
                     copyBtn.innerHTML = '<i class="bi bi-clipboard"></i> Sao chép nội dung';
                     shareModal.show();
                 }
-            });
+            }
+            
+            // Gắn hàm xử lý vào sự kiện click
+            shareBtn.addEventListener('click', handleShare);
 
-            // Gắn sự kiện cho nút sao chép trong modal
+            // Gắn sự kiện cho nút sao chép trong modal (không đổi)
             copyBtn.addEventListener('click', function() {
                 shareTextArea.select();
                 navigator.clipboard.writeText(shareTextArea.value).then(() => {
