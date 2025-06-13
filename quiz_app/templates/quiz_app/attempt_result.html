@@ -83,12 +83,12 @@
                     
                     {# Dùng filter 'percentage' vừa tạo #}
                     {% with percentage=attempt.score_achieved|percentage:attempt.quiz.scoring_scale_max %}
-                        {% if percentage >= 80 %}
+                        {% if percentage >= 85 %}
                             <h4 class="text-success fw-bold"><i class="bi bi-trophy-fill me-2"></i>Xuất sắc!</h4>
-                            <p class="lead">Bạn đã thể hiện một sự hiểu biết tuyệt vời về chủ đề này.</p>
+                            <p class="lead">Bạn đã thể hiện một sự hiểu biết tuyệt vời về chủ đề này. Hãy tiếp tục phát huy!</p>
                         {% elif percentage >= 50 %}
                             <h4 class="text-primary fw-bold"><i class="bi bi-hand-thumbs-up-fill me-2"></i>Làm tốt lắm!</h4>
-                            <p class="lead">Bạn đã nắm vững phần lớn kiến thức quan trọng.</p>
+                            <p class="lead">Bạn đã nắm vững phần lớn kiến thức quan trọng. Hãy tiếp tục rèn luyện nhé!</p>
                         {% elif percentage > 0 %}
                             <h4 class="text-warning fw-bold"><i class="bi bi-emoji-smile-fill me-2"></i>Cố gắng hơn nhé!</h4>
                             <p class="lead">Hãy xem lại các câu trả lời và thử sức lại lần nữa để cải thiện điểm số.</p>
@@ -405,7 +405,7 @@
             });
         });
         
-        // --- PHẦN 4: LOGIC CUỐI CÙNG VÀ ỔN ĐỊNH NHẤT CHO NÚT CHIA SẺ ---
+        // --- PHẦN 4: LOGIC NÂNG CAO - CHIA SẺ KẾT QUẢ DẠNG HÌNH ẢNH ---
         const shareBtn = document.getElementById('share-result-btn');
         if (shareBtn) {
             const shareModalEl = document.getElementById('shareResultModal');
@@ -413,39 +413,62 @@
             const shareTextArea = document.getElementById('share-text-content');
             const copyBtn = document.getElementById('copy-share-text-btn');
 
-            shareBtn.addEventListener('click', function() {
-                // Lấy tất cả dữ liệu cần thiết
+            // Chuyển hàm xử lý thành một hàm async để xử lý các tác vụ bất đồng bộ
+            async function handleShare() {
+                // Lấy canvas của biểu đồ
+                const canvas = document.getElementById('scoreChart');
+
+                // Lấy các thông tin văn bản cần thiết
                 const score = '{{ attempt.score_achieved|floatformat:2 }}';
                 const maxScore = '{{ attempt.quiz.scoring_scale_max }}';
                 const quizName = '{{ share_quiz_name|escapejs }}';
                 const url = '{{ homepage_url }}';
                 const accessCode = '{{ share_access_code|default:"" }}';
 
-                // --- THAY ĐỔI CHÍNH Ở ĐÂY ---
-                // 1. Xây dựng một chuỗi văn bản duy nhất chứa tất cả thông tin
-                let shareText = `📝 Tôi vừa hoàn thành đề thi "${quizName}" với kết quả ${score}/${maxScore}!\n\n`;
+                // Xây dựng nội dung văn bản cho phương án dự phòng hoặc đi kèm ảnh
+                let fallbackText = `📝 Tôi vừa hoàn thành đề thi "${quizName}" với kết quả ${score}/${maxScore}!\n\n`;
                 if (accessCode) {
-                    shareText += `Mã tham gia đề thi này là: ${accessCode}\n\n`;
+                    fallbackText += `Mã tham gia đề thi này là: ${accessCode}\n\n`;
                 }
-                shareText += `Bạn cũng có thể thử sức tại đây:\n${url}`;
+                fallbackText += `Bạn cũng có thể thử sức tại đây:\n${url}`;
 
-                // 2. Tạo đối tượng chia sẻ chỉ chứa title và text (không có url riêng)
-                const shareData = {
-                    title: 'Kết quả thi trắc nghiệm',
-                    text: shareText, // Toàn bộ nội dung nằm trong text
-                };
+                // Kiểm tra xem trình duyệt có hỗ trợ chia sẻ file không
+                if (navigator.canShare && canvas) {
+                    try {
+                        // Bước 1: Chuyển đổi canvas thành một đối tượng Blob (dữ liệu ảnh thô)
+                        // canvas.toBlob là một hàm bất đồng bộ, nên chúng ta dùng Promise để đợi nó hoàn thành
+                        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
 
-                // 3. Tiến hành chia sẻ
-                if (navigator.share) {
-                    // Chia sẻ đối tượng đã được gộp
-                    navigator.share(shareData).catch((err) => console.error("Lỗi khi chia sẻ:", err));
-                } else {
-                    // Phương án dự phòng cũng dùng chính chuỗi văn bản đó
-                    shareTextArea.value = shareText;
-                    copyBtn.innerHTML = '<i class="bi bi-clipboard"></i> Sao chép nội dung';
-                    shareModal.show();
+                        // Bước 2: Tạo một đối tượng File từ Blob để API có thể xử lý
+                        const file = new File([blob], 'quiz-result.png', { type: 'image/png' });
+
+                        // Bước 3: Kiểm tra xem trình duyệt có thể chia sẻ loại file này không
+                        if (navigator.canShare({ files: [file] })) {
+                            // Bước 4: Xây dựng dữ liệu và tiến hành chia sẻ
+                            await navigator.share({
+                                files: [file],
+                                title: 'Kết quả thi của tôi!',
+                                text: `Xem kết quả thi "${quizName}" của tôi.`,
+                            });
+                            console.log('Chia sẻ hình ảnh thành công!');
+                            return; // Kết thúc hàm sau khi chia sẻ thành công
+                        }
+                    } catch (err) {
+                        console.error("Lỗi khi chia sẻ file ảnh, chuyển sang chia sẻ văn bản:", err);
+                    }
                 }
-            });
+                
+                // --- PHƯƠNG ÁN DỰ PHÒNG ---
+                // Nếu trình duyệt không hỗ trợ chia sẻ file, hoặc có lỗi xảy ra
+                // chúng ta sẽ quay lại chia sẻ văn bản qua modal copy-paste
+                console.log("Trình duyệt không hỗ trợ chia sẻ ảnh, sử dụng phương án dự phòng.");
+                shareTextArea.value = fallbackText;
+                copyBtn.innerHTML = '<i class="bi bi-clipboard"></i> Sao chép nội dung';
+                shareModal.show();
+            }
+
+            // Gắn hàm xử lý vào sự kiện click
+            shareBtn.addEventListener('click', handleShare);
 
             // Gắn sự kiện cho nút sao chép trong modal (không đổi)
             copyBtn.addEventListener('click', function() {
