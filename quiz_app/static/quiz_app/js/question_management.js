@@ -1,18 +1,16 @@
-// quiz_app/static/quiz_app/js/question_management.js
-
 document.addEventListener('DOMContentLoaded', function() {
-    // --- PHẦN 1: CODE GỐC CỦA BẠN ĐỂ LẤY CSRF TOKEN ---
     const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-
-    // --- PHẦN 2: TOÀN BỘ LOGIC FORMSET, HTMX, VÀ MODAL GỐC CỦA BẠN ---
     setupForm(document.querySelector('#createQuestionForm'));
-    
+    // ==========================================================
+    // ===== HÀM KHỞI TẠO CHO FORMSET (Thêm/Xóa đáp án)    =====
+    // ==========================================================
     function initializeAnswerFormset(formElement) {
         if (!formElement || formElement.dataset.initialized === 'true') {
             return;
         }
         formElement.dataset.initialized = 'true';
 
+        // Tìm các thành phần trong form được truyền vào
         const container = formElement.querySelector('.answer-forms-container');
         const addBtn = formElement.querySelector('.add-answer-btn');
         const template = formElement.querySelector('.answer-form-template');
@@ -25,11 +23,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const maxFormsInput = formElement.querySelector('input[name$="-MAX_NUM_FORMS"]');
         const maxNumForms = maxFormsInput ? parseInt(maxFormsInput.value, 10) : 7;
 
+        // Hàm cập nhật trạng thái nút "Thêm"
         const updateAddButtonVisibility = () => {
             const visibleFormsCount = container.querySelectorAll('.answer-form-row:not(.is-hidden)').length;
             addBtn.style.display = (visibleFormsCount >= maxNumForms) ? 'none' : 'inline-block';
         };
 
+        // Gắn sự kiện cho nút "Thêm đáp án"
         addBtn.addEventListener('click', function() {
             const visibleFormsCount = container.querySelectorAll('.answer-form-row:not(.is-hidden)').length;
             if (visibleFormsCount >= maxNumForms) return;
@@ -49,22 +49,27 @@ document.addEventListener('DOMContentLoaded', function() {
             renumberAnswerForms(container);
         });
 
+        // Gắn sự kiện cho các nút "Xóa"
         container.addEventListener('click', function(event) {
             if (event.target.classList.contains('remove-answer-btn')) {
                 const formRow = event.target.closest('.answer-form-row');
                 if (formRow) {
+                    // Logic này giờ đúng cho cả đáp án cũ và đáp án mới thêm
                     const deleteInput = formRow.querySelector('input[type="checkbox"][name$="-DELETE"]');
                     if (deleteInput) {
                         deleteInput.checked = true;
                         formRow.classList.add('is-hidden');
                     } else {
+                        // Đây là trường hợp dự phòng, sẽ không xảy ra nếu template đúng
                         formRow.remove();
                     }
+
                     updateAddButtonVisibility();
                     renumberAnswerForms(container);
                 }
             }
         });
+
         updateAddButtonVisibility();
     }
     
@@ -79,30 +84,47 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // === SETUP TỔNG THỂ CHO MỘT FORM ===
     function setupForm(formElement) {
         if (!formElement) return;
+
+        // 1. Khởi tạo các nút Thêm/Xóa
+        // Hàm này đã có sẵn guard 'data-initialized' nên an toàn để gọi nhiều lần
         initializeAnswerFormset(formElement);
+
+        // 2. Đánh số lại các đáp án để đảm bảo UI luôn đúng
         const container = formElement.querySelector('.answer-forms-container');
         renumberAnswerForms(container);
 
+        // 3. Cài đặt logic tự động xóa thông báo lỗi
         const errorContainer = formElement.querySelector('#formset-errors');
         if (errorContainer && errorContainer.children.length > 0) {
             const correctCheckboxes = formElement.querySelectorAll('input[type="checkbox"][name$="-is_correct"]');
+            
             correctCheckboxes.forEach(checkbox => {
                 checkbox.addEventListener('change', () => {
                     errorContainer.style.transition = 'opacity 0.5s ease';
                     errorContainer.style.opacity = '0';
-                    setTimeout(() => { errorContainer.remove(); }, 500);
+                    setTimeout(() => {
+                        errorContainer.remove();
+                    }, 500);
                 }, { once: true });
             });
         }
     }
 
+    // ==========================================================
+    // ===== LẮNG NGHE SỰ KIỆN CỦA HTMX                     =====
+    // ==========================================================
+    // Lắng nghe sự kiện trên toàn bộ trang
     document.body.addEventListener('htmx:afterSwap', function(event) {
         setupForm(document.querySelector('#createQuestionForm'));
         setupForm(document.querySelector('#editQuestionForm'));
     });
 
+    // ==========================================================
+    // ===== PHẦN CÒN LẠI (Phân trang và Xóa) GIỮ NGUYÊN    =====
+    // ==========================================================
     function renderPaginationControls(data) {
         if (data.total_pages <= 1) return '';
         let html = `<li class="page-item ${data.has_previous ? '' : 'disabled'}"><a class="page-link" href="#" data-page="${data.previous_page_number}">&laquo;</a></li>`;
@@ -135,7 +157,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 tableBody.innerHTML = '';
                 if (data.questions.length === 0) {
-                     tableBody.innerHTML = '<tr><td colspan="4" class="text-center p-5">Chủ đề này chưa có câu hỏi nào.</td></tr>';
+                        tableBody.innerHTML = '<tr><td colspan="4" class="text-center p-5">Chủ đề này chưa có câu hỏi nào.</td></tr>';
                 } else {
                     let questionCounter = (data.current_page - 1) * 10 + 1;
                     data.questions.forEach(q => {
@@ -143,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <tr>
                                 <th>${questionCounter++}</th>
                                 <td style="word-break: break-word;">
-                                    <a href="#" class="text-decoration-none text-dark"
+                                    <a href="#" class="text-decoration-none text-body-emphasis"
                                     data-bs-toggle="modal"
                                     data-bs-target="#questionDetailModal"
                                     data-question-id="${q.id}">
@@ -174,6 +196,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     fetchAndRenderTable(1);
 
+    // === LOGIC MỚI VÀ ĐÁNG TIN CẬY ĐỂ XỬ LÝ MODAL XÓA ===
     const questionTableBodyForDelete = document.getElementById('questions-table-body');
     const finalDeleteModalEl = document.getElementById('deleteQuestionModal');
 
@@ -181,14 +204,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const deleteModalInstance = new bootstrap.Modal(finalDeleteModalEl);
         let urlToDelete = '';
 
+        // 1. Lắng nghe click trên toàn bộ bảng
         questionTableBodyForDelete.addEventListener('click', function(event) {
             const deleteButton = event.target.closest('.delete-question-btn');
             if (deleteButton) {
                 urlToDelete = deleteButton.dataset.deleteUrl;
-                deleteModalInstance.show();
+                deleteModalInstance.show(); // 2. Hiển thị modal bằng JS
             }
         });
 
+        // 3. Gắn sự kiện cho nút xác nhận
         const confirmDeleteBtn = document.getElementById('confirmDeleteQuestionBtn');
         if(confirmDeleteBtn) {
             confirmDeleteBtn.addEventListener('click', function() {
@@ -211,23 +236,30 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // === LOGIC MỚI ĐỂ XỬ LÝ MODAL XEM CHI TIẾT CÂU HỎI ===
     const detailModalEl = document.getElementById('questionDetailModal');
     if (detailModalEl) {
         const modalBody = document.getElementById('questionDetailModalBody');
         detailModalEl.addEventListener('show.bs.modal', function(event) {
             const link = event.relatedTarget;
             const questionId = link.dataset.questionId;
+
             modalBody.innerHTML = '<div class="text-center p-4"><span class="spinner-border"></span></div>';
+
             fetch(`/api/question-details/${questionId}/`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        let contentHtml = `<p><strong>${data.question_text}</strong></p><hr>`;
+                        let contentHtml = `<p class="text-body-emphasis fs-5">${data.question_text}</p><hr>`;
                         contentHtml += '<ul class="list-group list-group-flush">';
+
                         data.answers.forEach(answer => {
-                            const itemClass = answer.is_correct ? 'list-group-item list-group-item-success' : 'list-group-item';
+                            const itemClass = answer.is_correct 
+                                ? 'list-group-item list-group-item-success' 
+                                : 'list-group-item';
                             contentHtml += `<li class="${itemClass}">${answer.text}</li>`;
                         });
+
                         contentHtml += '</ul>';
                         modalBody.innerHTML = contentHtml;
                     } else {
