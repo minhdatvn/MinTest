@@ -99,11 +99,15 @@
                             <i class="bi bi-house-door-fill"></i> Bảng điều khiển
                         </a>
                     </li>
-                
                     {% if perms.quiz_app.view_question %}
                     <li class="nav-item">
                         <a href="{% url 'topic_group_list' %}" class="nav-link">
                             <i class="bi bi-folder2-open"></i> Quản lý Nội dung
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'ai_generator_page' %}" class="nav-link">
+                            <i class="bi bi-stars"></i> Tạo câu hỏi bằng AI
                         </a>
                     </li>
                     <li class="nav-item">
