@@ -425,7 +425,7 @@
                 // 1. Xây dựng một chuỗi văn bản duy nhất chứa tất cả thông tin
                 let shareText = `📝 Tôi vừa hoàn thành đề thi "${quizName}" với kết quả ${score}/${maxScore}!\n\n`;
                 if (accessCode) {
-                    shareText += `Mã tham gia đề thi này là: *${accessCode}*\n\n`;
+                    shareText += `Mã tham gia đề thi này là: ${accessCode}\n\n`;
                 }
                 shareText += `Bạn cũng có thể thử sức tại đây:\n${url}`;
 
