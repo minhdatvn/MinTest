@@ -47,8 +47,6 @@ import os
 import json
 
 # --- Hàm helper giúp tạo nhóm chủ đề mặc định ---
-
-
 def _get_or_create_default_group(user):
     default_group, created = TopicGroup.objects.get_or_create(
         user=user,
@@ -61,8 +59,6 @@ def _get_or_create_default_group(user):
 
 
 # --- Hàm helper giúp đọc dữ liệu file excel khi Nhập ---
-
-
 def _process_question_dataframe(df, topic_instance):
     """
     Hàm helper nhận một DataFrame và một đối tượng Topic,
@@ -126,10 +122,32 @@ def _process_question_dataframe(df, topic_instance):
 
     return questions_added_count
 
+# --- Hàm helper giúp xuất dữ liệu ra file excel ---
+def _generate_rows_for_questions(questions_queryset):
+    """
+    Nhận một queryset các câu hỏi và trả về một list các dictionary
+    để ghi vào file Excel.
+    """
+    rows = []
+    # Dùng prefetch_related để tối ưu hóa truy vấn
+    for q_idx, question in enumerate(questions_queryset.prefetch_related('answers')):
+        rows.append({
+            "Nội dung": question.question_text,
+            "Đáp án đúng?": "",
+            "Đường dẫn ảnh": "",
+        })
+        for answer in question.answers.all():
+            rows.append({
+                "Nội dung": answer.answer_text,
+                "Đáp án đúng?": "X" if answer.is_correct else "",
+                "Đường dẫn ảnh": "",
+            })
+        # Thêm dòng trống ngăn cách nếu đây không phải là câu hỏi cuối cùng
+        if q_idx < questions_queryset.count() - 1:
+            rows.append({"Nội dung": "", "Đáp án đúng?": "", "Đường dẫn ảnh": ""})
+    return rows
 
 # --- Hàm Trang chủ ---
-
-
 @login_required
 def dashboard_view(request):
     user = request.user
@@ -1195,7 +1213,7 @@ def export_questions_from_topic(request, topic_id):
     Xuất tất cả các câu hỏi và câu trả lời của một chủ đề cụ thể ra file Excel.
     """
     topic = get_object_or_404(Topic, id=topic_id, user=request.user)
-    questions = Question.objects.filter(topic=topic).prefetch_related("answers")
+    questions = Question.objects.filter(topic=topic) # Không cần prefetch_related ở đây nữa
 
     if not questions.exists():
         messages.warning(
@@ -1203,32 +1221,8 @@ def export_questions_from_topic(request, topic_id):
         )
         return redirect("question_list_in_topic", topic_id=topic.id)
 
-    data_for_excel = []
-    for q_idx, question in enumerate(questions):
-        # BỎ CỘT 'Mức độ khó'
-        data_for_excel.append(
-            {
-                "Nội dung": question.question_text,
-                "Đáp án đúng?": "",
-                "Đường dẫn ảnh": "",
-            }
-        )
-
-        for answer in question.answers.all():
-            # BỎ CỘT 'Mức độ khó'
-            data_for_excel.append(
-                {
-                    "Nội dung": answer.answer_text,
-                    "Đáp án đúng?": "X" if answer.is_correct else "",
-                    "Đường dẫn ảnh": "",
-                }
-            )
-
-        if q_idx < questions.count() - 1:
-            # BỎ CỘT 'Mức độ khó'
-            data_for_excel.append(
-                {"Nội dung": "", "Đáp án đúng?": "", "Đường dẫn ảnh": ""}
-            )
+    # THAY THẾ KHỐI FOR CŨ BẰNG DÒNG NÀY
+    data_for_excel = _generate_rows_for_questions(questions)
 
     # DataFrame bây giờ sẽ chỉ có 3 cột
     df = pd.DataFrame(data_for_excel)
@@ -1284,32 +1278,13 @@ def export_topic_group_view(request, group_id):
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         # Lặp qua từng chủ đề và tạo một sheet cho mỗi chủ đề
         for topic in topics_in_group:
-            questions = Question.objects.filter(topic=topic).prefetch_related("answers")
+            questions = Question.objects.filter(topic=topic)
 
             if not questions.exists():
                 continue  # Bỏ qua nếu chủ đề không có câu hỏi
 
-            data_for_sheet = []
-            for q_idx, question in enumerate(questions):
-                data_for_sheet.append(
-                    {
-                        "Nội dung": question.question_text,
-                        "Đáp án đúng?": "",
-                        "Đường dẫn ảnh": "",
-                    }
-                )
-                for answer in question.answers.all():
-                    data_for_sheet.append(
-                        {
-                            "Nội dung": answer.answer_text,
-                            "Đáp án đúng?": "X" if answer.is_correct else "",
-                            "Đường dẫn ảnh": "",
-                        }
-                    )
-                if q_idx < questions.count() - 1:
-                    data_for_sheet.append(
-                        {"Nội dung": "", "Đáp án đúng?": "", "Đường dẫn ảnh": ""}
-                    )
+            # THAY THẾ KHỐI FOR LỒNG NHAU CŨ BẰNG DÒNG NÀY
+            data_for_sheet = _generate_rows_for_questions(questions)
 
             df_sheet = pd.DataFrame(data_for_sheet)
             df_sheet.to_excel(
