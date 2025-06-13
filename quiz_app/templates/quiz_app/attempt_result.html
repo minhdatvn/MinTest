@@ -74,83 +74,71 @@
 
     <div class="card shadow-sm mb-4">
         <div class="card-body p-4">
-            <div class="row justify-content-center">
-                {# Đổi thành col-md-8 và mx-auto để căn giữa sau khi xóa cột bên phải #}
-                <div class="col-md-8 text-center mb-3 mb-md-0">
-                
-                    {# KHUÔN ẢNH GIỜ LÀ NỘI DUNG HIỂN THỊ CHÍNH #}
-                    <div id="result-card-to-capture" style="width: 100%; max-width: 450px; padding: 25px; background-color: white; border-radius: 15px; margin: auto;" class="shadow-sm">
-                        
-                        {# 1. Tên đề thi hiển thị bình thường, không nghiêng, không có dấu "" #}
-                        <h3 style="text-align: center; margin-bottom: 5px; color: #333; font-size: 1.5rem; font-weight: bold;">
-                            {{ share_quiz_name|escapejs }}
-                        </h3>
-            
-                        {# 2. Đưa "Lượt thi lúc" vào trong ảnh #}
-                        <p style="text-align: center; color: #6c757d; font-size: 0.9rem; margin-bottom: 20px;">
-                            Lượt thi lúc: {{ attempt.start_time|date:"H:i, d/m/Y" }}
-                        </p>
-                        
-                        {# Biểu đồ (không đổi) #}
-                        <div style="position: relative; width: 140px; height: 140px; margin: auto;">
-                            <canvas id="scoreChart"></canvas>
-                            <div id="chart-score-text" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.8rem; font-weight: bold; color: #333;">
-                                {{ attempt.score_achieved|percentage:attempt.quiz.scoring_scale_max|floatformat:0 }}%
-                            </div>
+            {# KHUNG CHỨA CHUNG ĐIỀU KHIỂN CHIỀU RỘNG VÀ CĂN GIỮA #}
+            <div class="col-lg-7 col-md-9 mx-auto">
+
+                {# KHỐI 1: Ô KẾT QUẢ CHART (ĐÃ BỎ MAX-WIDTH) #}
+                <div id="result-card-to-capture" style="width: 100%; padding: 25px; background-color: white; border-radius: 15px;" class="shadow-sm">
+                    
+                    <h3 style="text-align: center; margin-bottom: 5px; color: #333; font-size: 1.5rem; font-weight: bold;">
+                        {{ share_quiz_name|escapejs }}
+                    </h3>
+                    <p style="text-align: center; color: #6c757d; font-size: 0.9rem; margin-bottom: 5px;">
+                        Người làm bài: 
+                        {% if attempt.user %}
+                            {{ attempt.user.get_full_name|default:attempt.user.username }}
+                        {% else %}
+                            {{ attempt.guest_name }}
+                        {% endif %}
+                    </p>
+                    <p style="text-align: center; color: #6c757d; font-size: 0.9rem; margin-bottom: 20px;">
+                        Lượt thi lúc: {{ attempt.start_time|date:"H:i, d/m/Y" }}
+                    </p>
+                    <div style="position: relative; width: 140px; height: 140px; margin: auto;">
+                        <canvas id="scoreChart"></canvas>
+                        <div id="chart-score-text" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.8rem; font-weight: bold; color: #333;">
+                            {{ attempt.score_achieved|percentage:attempt.quiz.scoring_scale_max|floatformat:0 }}%
                         </div>
-                        
-                        {# Điểm số (không đổi) #}
-                        <p style="text-align: center; font-size: 1.3rem; font-weight: bold; margin: 15px 0 5px 0; color: #0d6efd;">
-                            {{ attempt.score_achieved|floatformat:2 }} / {{ attempt.quiz.scoring_scale_max }}
+                    </div>
+                    <p style="text-align: center; font-size: 1.3rem; margin: 15px 0 5px 0; font-weight: bold; color: #0d6efd;">
+                        Điểm: {{ attempt.score_achieved|floatformat:2 }} / {{ attempt.quiz.scoring_scale_max }}
+                    </p>
+                    {% with percentage=attempt.score_achieved|percentage:attempt.quiz.scoring_scale_max %}
+                        <p style="text-align: center; font-size: 1.1rem; font-weight: bold; margin-bottom: 0;
+                                {% if percentage >= 85 %}color: #198754;{% elif percentage >= 50 %}color: #0d6efd;{% else %}color: #ffc107;{% endif %}">
+                            {% if percentage >= 85 %} Xuất sắc! {% elif percentage >= 50 %} Làm tốt lắm! {% elif percentage > 0 %} Cố gắng hơn nhé! {% else %} Hên xui thôi! {% endif %}
                         </p>
-                        
-                        {# Lời bình luận và icon (không đổi) #}
-                        {% with percentage=attempt.score_achieved|percentage:attempt.quiz.scoring_scale_max %}
-                            <p style="text-align: center; font-size: 1.1rem; font-weight: bold; margin-bottom: 0;
-                                      {% if percentage >= 85 %}color: #198754;{% elif percentage >= 50 %}color: #0d6efd;{% else %}color: #ffc107;{% endif %}">
-                                {% if percentage >= 85 %}
-                                    <i class="bi bi-trophy-fill"></i> Xuất sắc!
-                                {% elif percentage >= 50 %}
-                                    <i class="bi bi-hand-thumbs-up-fill"></i> Làm tốt lắm!
-                                {% elif percentage > 0 %}
-                                    <i class="bi bi-emoji-smile-fill"></i> Cố gắng hơn nhé!
-                                {% else %}
-                                    <i class="bi bi-tencent-qq"></i> Hên xui thôi!
-                                {% endif %}
-                            </p>
-                        {% endwith %}
+                    {% endwith %}
+                </div>
+
+                {# KHỐI 2: CÁC NÚT BẤM (ĐÃ BỎ MAX-WIDTH VÀ THAY ĐỔI KHOẢNG CÁCH) #}
+                <div class="text-center mt-2"> {# Giảm khoảng trống từ mt-3 xuống mt-2 #}
+                    <div class="mb-3">
+                        <div class="d-grid gap-2 mx-auto">
+                            <a href="{% url 'start_quiz' attempt.quiz.template_for.id|default:attempt.quiz.id %}" class="btn btn-primary btn-lg d-inline-flex align-items-center justify-content-center" title="Làm lại bài thi này">
+                                <i class="bi bi-arrow-clockwise"></i><span class="ms-2">Làm lại</span>
+                            </a>
+                            <a href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'guest_homepage' %}{% endif %}" class="btn btn-secondary btn-lg d-inline-flex align-items-center justify-content-center" title="Quay lại trang chính">
+                                <i class="bi bi-house-door-fill"></i><span class="ms-2">Trang chủ</span>
+                            </a>
+                            <button type="button" id="share-result-btn" class="btn btn-success btn-lg d-inline-flex align-items-center justify-content-center" title="Chia sẻ ảnh kết quả">
+                                <i class="bi bi-share-fill"></i><span class="ms-2">Chia sẻ Kết quả</span>
+                            </button>
+                            <button type="button" id="invite-to-quiz-btn" class="btn btn-info btn-lg d-inline-flex align-items-center justify-content-center" title="Mời người khác làm bài thi này">
+                                <i class="bi bi-send-fill"></i><span class="ms-2">Mời làm bài</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="d-inline-flex align-items-center">
+                        <span class="me-2">Hiển thị kết quả thi:</span>
+                        <div class="btn-group" role="group" aria-label="Lọc kết quả">
+                            <button type="button" class="btn btn-sm btn-outline-secondary filter-btn" data-filter="all">Tất cả</button>
+                            <button type="button" class="btn btn-sm btn-outline-success filter-btn" data-filter="correct">Đúng</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger filter-btn" data-filter="incorrect">Sai</button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <div class="text-center my-4">
-            <div class="mb-3">
-                <a href="{% url 'start_quiz' attempt.quiz.template_for.id|default:attempt.quiz.id %}" class="btn btn-primary d-inline-flex align-items-center btn-responsive" title="Làm lại bài thi này">
-                    <i class="bi bi-arrow-clockwise"></i><span class="ms-1">Làm lại</span>
-                </a>
-            
-                <a href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'guest_homepage' %}{% endif %}" class="btn btn-secondary ms-2 d-inline-flex align-items-center btn-responsive" title="Quay lại trang chính">
-                    <i class="bi bi-house-door-fill"></i><span class="ms-1">Trang chủ</span>
-                </a>
-                
-                <button type="button" id="share-result-btn" class="btn btn-success ms-2 d-inline-flex align-items-center btn-responsive" title="Chia sẻ ảnh kết quả">
-                    <i class="bi bi-share-fill"></i><span class="ms-1">Chia sẻ Kết quả</span>
-                </button>
-                <button type="button" id="invite-to-quiz-btn" class="btn btn-info ms-2 d-inline-flex align-items-center btn-responsive" title="Mời người khác làm bài thi này">
-                    <i class="bi bi-send-fill"></i><span class="ms-1">Mời làm bài</span>
-                </button>
-            </div>
-
-            <div class="d-inline-flex align-items-center">
-                <span class="me-2">Hiển thị kết quả thi:</span>
-                <div class="btn-group" role="group" aria-label="Lọc kết quả">
-                    <button type="button" class="btn btn-sm btn-outline-secondary filter-btn" data-filter="all">Tất cả</button>
-                    <button type="button" class="btn btn-sm btn-outline-success filter-btn" data-filter="correct">Đúng</button>
-                    <button type="button" class="btn btn-sm btn-outline-danger filter-btn" data-filter="incorrect">Sai</button>
-                </div>
-            </div>
-
         </div>
 
     <div class="review-container card d-none">
