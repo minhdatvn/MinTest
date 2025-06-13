@@ -65,75 +65,80 @@
             background-color: var(--bs-danger-bg-subtle); 
             border-left: 5px solid var(--bs-danger); 
         }
+        @media (max-width: 767.98px) {
+            .btn-responsive span {
+                display: none;
+            }
+        }
     </style>
 
     <div class="card shadow-sm mb-4">
         <div class="card-body p-4">
-            <div class="row align-items-center">
-                {# --- KHỐI BÊN TRÁI: KHUÔN ẢNH ĐÃ ĐƯỢC CẬP NHẬT HOÀN CHỈNH --- #}
-                <div class="col-md-5 text-center mb-3 mb-md-0">
-                    <div id="result-card-to-capture" style="width: 100%; max-width: 400px; padding: 20px; background-color: white; border-radius: 15px; margin: auto;" class="shadow-sm">
+            <div class="row justify-content-center">
+                {# Đổi thành col-md-8 và mx-auto để căn giữa sau khi xóa cột bên phải #}
+                <div class="col-md-8 text-center mb-3 mb-md-0">
+                
+                    {# KHUÔN ẢNH GIỜ LÀ NỘI DUNG HIỂN THỊ CHÍNH #}
+                    <div id="result-card-to-capture" style="width: 100%; max-width: 450px; padding: 25px; background-color: white; border-radius: 15px; margin: auto;" class="shadow-sm">
                         
-                        {# 1. Sửa lại tiêu đề #}
-                        <h4 style="text-align: center; margin-bottom: 15px; color: #333; font-size: 1.5rem;">Kết quả bài thi</h4>
+                        {# 1. Tên đề thi hiển thị bình thường, không nghiêng, không có dấu "" #}
+                        <h3 style="text-align: center; margin-bottom: 5px; color: #333; font-size: 1.5rem; font-weight: bold;">
+                            {{ share_quiz_name|escapejs }}
+                        </h3>
+            
+                        {# 2. Đưa "Lượt thi lúc" vào trong ảnh #}
+                        <p style="text-align: center; color: #6c757d; font-size: 0.9rem; margin-bottom: 20px;">
+                            Lượt thi lúc: {{ attempt.start_time|date:"H:i, d/m/Y" }}
+                        </p>
                         
                         {# Biểu đồ (không đổi) #}
-                        <div style="position: relative; width: 200px; height: 200px; margin: auto;">
+                        <div style="position: relative; width: 140px; height: 140px; margin: auto;">
                             <canvas id="scoreChart"></canvas>
-                            <div id="chart-score-text" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 2.2rem; font-weight: bold; color: #333;">
+                            <div id="chart-score-text" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.8rem; font-weight: bold; color: #333;">
                                 {{ attempt.score_achieved|percentage:attempt.quiz.scoring_scale_max|floatformat:0 }}%
                             </div>
                         </div>
                         
                         {# Điểm số (không đổi) #}
-                        <p style="text-align: center; font-size: 1.5rem; font-weight: bold; margin: 15px 0 5px 0; color: #0d6efd;">
+                        <p style="text-align: center; font-size: 1.3rem; font-weight: bold; margin: 15px 0 5px 0; color: #0d6efd;">
                             {{ attempt.score_achieved|floatformat:2 }} / {{ attempt.quiz.scoring_scale_max }}
                         </p>
                         
-                        {# 2. Thêm lời bình luận và icon vào trong ảnh #}
+                        {# Lời bình luận và icon (không đổi) #}
                         {% with percentage=attempt.score_achieved|percentage:attempt.quiz.scoring_scale_max %}
-                            {% if percentage >= 85 %}
-                                <p style="text-align: center; font-size: 1.1rem; font-weight: bold; color: #198754;">Xuất sắc!</p>
-                            {% elif percentage >= 50 %}
-                                <p style="text-align: center; font-size: 1.1rem; font-weight: bold; color: #0d6efd;">Làm tốt lắm!</p>
-                            {% else %}
-                                <p style="text-align: center; font-size: 1.1rem; font-weight: bold; color: #ffc107;">Cố gắng hơn nhé!</p>
-                            {% endif %}
+                            <p style="text-align: center; font-size: 1.1rem; font-weight: bold; margin-bottom: 0;
+                                      {% if percentage >= 85 %}color: #198754;{% elif percentage >= 50 %}color: #0d6efd;{% else %}color: #ffc107;{% endif %}">
+                                {% if percentage >= 85 %}
+                                    <i class="bi bi-trophy-fill"></i> Xuất sắc!
+                                {% elif percentage >= 50 %}
+                                    <i class="bi bi-hand-thumbs-up-fill"></i> Làm tốt lắm!
+                                {% elif percentage > 0 %}
+                                    <i class="bi bi-emoji-smile-fill"></i> Cố gắng hơn nhé!
+                                {% else %}
+                                    <i class="bi bi-tencent-qq"></i> Hên xui thôi!
+                                {% endif %}
+                            </p>
                         {% endwith %}
-            
                     </div>
-                </div>
-            
-                {# --- KHỐI BÊN PHẢI: CHỈ GIỮ LẠI THÔNG TIN KHÔNG BỊ TRÙNG LẶP --- #}
-                <div class="col-md-7">
-                    <h2 class="card-title">{{ share_quiz_name }}</h2>
-                    <p class="text-muted">Lượt thi lúc: {{ attempt.start_time|date:"H:i, d/m/Y" }}</p>
-                    <hr>
-                    <p class="lead">
-                        Cảm ơn bạn đã hoàn thành bài thi. Bạn có thể xem lại chi tiết các câu trả lời ở bên dưới, làm lại bài thi hoặc quay về trang chủ.
-                    </p>
                 </div>
             </div>
         </div>
 
         <div class="text-center my-4">
             <div class="mb-3">
-                {# Nút Làm lại (không đổi) #}
-                <a href="{% url 'start_quiz' attempt.quiz.template_for.id|default:attempt.quiz.id %}" class="btn btn-primary d-inline-flex align-items-center" title="Làm lại bài thi này">
-                    <i class="bi bi-arrow-clockwise"></i>
-                    <span class="ms-1">Làm lại</span>
+                <a href="{% url 'start_quiz' attempt.quiz.template_for.id|default:attempt.quiz.id %}" class="btn btn-primary d-inline-flex align-items-center btn-responsive" title="Làm lại bài thi này">
+                    <i class="bi bi-arrow-clockwise"></i><span class="ms-1">Làm lại</span>
                 </a>
             
-                {# Nút Trang chủ (đã sửa text) #}
-                <a href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'guest_homepage' %}{% endif %}" class="btn btn-secondary ms-2 d-inline-flex align-items-center" title="Quay lại trang chính">
-                    <i class="bi bi-house-door-fill"></i>
-                    <span class="ms-1">Trang chủ</span>
+                <a href="{% if user.is_authenticated %}{% url 'dashboard' %}{% else %}{% url 'guest_homepage' %}{% endif %}" class="btn btn-secondary ms-2 d-inline-flex align-items-center btn-responsive" title="Quay lại trang chính">
+                    <i class="bi bi-house-door-fill"></i><span class="ms-1">Trang chủ</span>
                 </a>
-            
-                {# NÚT CHIA SẺ MỚI #}
-                <button type="button" id="share-result-btn" class="btn btn-info ms-2 d-inline-flex align-items-center" title="Chia sẻ kết quả">
-                    <i class="bi bi-share-fill"></i>
-                    <span class="ms-1">Chia sẻ</span>
+                
+                <button type="button" id="share-result-btn" class="btn btn-success ms-2 d-inline-flex align-items-center btn-responsive" title="Chia sẻ ảnh kết quả">
+                    <i class="bi bi-share-fill"></i><span class="ms-1">Chia sẻ Kết quả</span>
+                </button>
+                <button type="button" id="invite-to-quiz-btn" class="btn btn-info ms-2 d-inline-flex align-items-center btn-responsive" title="Mời người khác làm bài thi này">
+                    <i class="bi bi-send-fill"></i><span class="ms-1">Mời làm bài</span>
                 </button>
             </div>
 
@@ -366,7 +371,7 @@
                 showQuestion(0);
             }
 
-            // === PHẦN VẼ BIỂU ĐỒ VÀ CHIA SẺ (LOGIC MỚI, ĐƠN GIẢN HƠN) ===
+            // === PHẦN VẼ BIỂU ĐỒ  ===
             const userScore = parseFloat('{{ attempt.score_achieved|default:0|stringformat:".2f" }}');
             const maxScore = parseFloat('{{ attempt.quiz.scoring_scale_max|default:100|stringformat:".2f" }}');
             const chartCanvas = document.getElementById('scoreChart');
@@ -378,14 +383,18 @@
                 });
             }
 
+            // === PHẦN CHIA SẺ VÀ MỜI (LOGIC MỚI) ===
             const shareBtn = document.getElementById('share-result-btn');
-            if (shareBtn) {
+            const inviteBtn = document.getElementById('invite-to-quiz-btn');
+
+            if (shareBtn && inviteBtn) {
                 const shareModalEl = document.getElementById('shareResultModal');
                 const shareModal = new bootstrap.Modal(shareModalEl);
                 const shareTextArea = document.getElementById('share-text-content');
                 const copyBtn = document.getElementById('copy-share-text-btn');
 
-                async function handleShare() {
+                // --- HÀM 1: Xử lý nút "Chia sẻ Kết quả" (chia sẻ ảnh) ---
+                async function handleShareResult() {
                     const nodeToCapture = document.getElementById('result-card-to-capture');
                     try {
                         const dataUrl = await htmlToImage.toPng(nodeToCapture, { quality: 0.95, pixelRatio: 2 });
@@ -403,24 +412,40 @@
                     } catch (err) {
                         console.error("Lỗi khi chia sẻ ảnh, chuyển sang phương án dự phòng:", err);
                     }
+                    alert('Trình duyệt của bạn không hỗ trợ chia sẻ hình ảnh.');
+                }
 
-                    // Phương án dự phòng: Chia sẻ văn bản
+                // --- HÀM 2: Xử lý nút "Mời làm bài" (chia sẻ text/link) ---
+                function handleInvite() {
                     const quizName = '{{ share_quiz_name|escapejs }}';
                     const url = '{{ homepage_url }}';
                     const accessCode = '{{ share_access_code|default:"" }}';
-                    let fallbackText = `📝 Tôi vừa hoàn thành đề thi "${quizName}" với kết quả ${userScore}/${maxScore}!\n\n`;
+
+                    let inviteText = `📝 Mời bạn thử sức với đề thi "${quizName}" trên MinTest!\n\n`;
                     if (accessCode) {
-                        fallbackText += `Mã tham gia đề thi này là: ${accessCode}\n\n`;
+                        inviteText += `Sử dụng mã tham gia: ${accessCode}\n\n`;
                     }
-                    fallbackText += `Bạn cũng có thể thử sức tại đây:\n${url}`;
-                    
-                    shareTextArea.value = fallbackText;
-                    copyBtn.innerHTML = '<i class="bi bi-clipboard"></i> Sao chép nội dung';
-                    shareModal.show();
+                    inviteText += `Làm bài tại đây:\n${url}`;
+
+                    // Sử dụng Web Share API cho văn bản
+                    if (navigator.share) {
+                        navigator.share({
+                            title: `Mời làm bài thi: ${quizName}`,
+                            text: inviteText,
+                        }).catch((err) => console.error("Lỗi khi chia sẻ:", err));
+                    } else {
+                        // Phương án dự phòng: Hiện modal để copy/paste
+                        shareTextArea.value = inviteText;
+                        copyBtn.innerHTML = '<i class="bi bi-clipboard"></i> Sao chép lời mời';
+                        shareModal.show();
+                    }
                 }
 
-                shareBtn.addEventListener('click', handleShare);
+                // Gắn sự kiện cho từng nút
+                shareBtn.addEventListener('click', handleShareResult);
+                inviteBtn.addEventListener('click', handleInvite);
                 
+                // Logic nút sao chép trong modal (dùng chung cho cả 2)
                 copyBtn.addEventListener('click', function() {
                     shareTextArea.select();
                     navigator.clipboard.writeText(shareTextArea.value).then(() => {
