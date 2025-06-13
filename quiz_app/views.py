@@ -1,5 +1,6 @@
 # quiz_project/quiz_app/views.py
-
+from io import BytesIO
+from datetime import timedelta
 from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
 from django.urls import reverse
@@ -14,6 +15,7 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.models import Group
+from django.conf import settings  
 from .models import (
     TopicGroup,
     Topic,
@@ -37,14 +39,14 @@ from .forms import (
     EnrollmentForm,
     CustomAuthenticationForm,
 )
-from io import BytesIO
-from datetime import timedelta
+
 import math
 import string
 import random
 import pandas as pd
 import os
 import json
+import google.generativeai as genai
 
 # --- Hàm helper giúp tạo nhóm chủ đề mặc định ---
 def _get_or_create_default_group(user):
@@ -1716,3 +1718,134 @@ def ajax_login_view(request):
             return render(request, 'quiz_app/_login_form.html', {'login_form': form})
     # Trả về lỗi nếu không phải là POST request
     return HttpResponse("Yêu cầu không hợp lệ", status=400)
+
+# --- Tạo câu hỏi bằng AI ---
+@login_required
+@permission_required("quiz_app.add_question", raise_exception=True)
+def generate_questions_ai_view(request):
+    # Chỉ chấp nhận yêu cầu POST từ JavaScript
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+    try:
+        # Lấy dữ liệu từ yêu cầu AJAX
+        data = json.loads(request.body)
+        user_content = data.get('content')
+        num_questions = int(data.get('num_questions', 5))
+        num_answers = int(data.get('num_answers', 4))
+
+        if not user_content:
+            return JsonResponse({'error': 'Nội dung không được để trống.'}, status=400)
+
+        # 1. Cấu hình API Key
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+
+        # 2. Xây dựng Prompt thông minh
+        prompt = f"""
+        Bạn là một trợ lý chuyên gia tạo câu hỏi trắc nghiệm. Dựa vào nội dung sau:
+        ---
+        {user_content}
+        ---
+        Hãy tạo chính xác {num_questions} câu hỏi trắc nghiệm. Mỗi câu hỏi phải có chính xác {num_answers} lựa chọn. 
+        Trong mỗi câu hỏi, phải có duy nhất một đáp án đúng.
+
+        Hãy trả lời bằng một chuỗi JSON hợp lệ, không có bất kỳ giải thích nào khác.
+        Cấu trúc của JSON phải là một mảng (list) các đối tượng (object), mỗi đối tượng đại diện cho một câu hỏi và có dạng như sau:
+        {{
+          "question_text": "Nội dung câu hỏi ở đây",
+          "answers": [
+            {{"text": "Nội dung đáp án 1", "is_correct": false}},
+            {{"text": "Nội dung đáp án 2", "is_correct": true}},
+            {{"text": "Nội dung đáp án 3", "is_correct": false}},
+            {{"text": "Nội dung đáp án 4", "is_correct": false}}
+          ]
+        }}
+        """
+
+        # 3. Gọi API và nhận kết quả
+        response = model.generate_content(prompt)
+
+        # 4. Xử lý kết quả trả về
+        # response.text có thể chứa ```json ... ```, chúng ta cần làm sạch nó
+        cleaned_text = response.text.strip().replace('```json', '').replace('```', '').strip()
+        ai_data = json.loads(cleaned_text)
+
+        return JsonResponse({'success': True, 'data': ai_data})
+
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'AI đã trả về một định dạng không hợp lệ. Vui lòng thử lại với nội dung khác.'}, status=500)
+    except Exception as e:
+        # Ghi lại lỗi thực tế để debug
+        print(f"Lỗi API Gemini: {e}")
+        return JsonResponse({'error': f'Đã có lỗi xảy ra khi giao tiếp với AI. Lỗi: {str(e)}'}, status=500)
+
+# --- Hiện các câu hỏi được tạo bằng AI ---
+@login_required
+@permission_required("quiz_app.add_question", raise_exception=True)
+def ai_generator_page_view(request):
+    # Lấy tất cả các chủ đề của người dùng để họ có thể chọn lưu câu hỏi vào
+    user_topics = Topic.objects.filter(user=request.user).order_by('group__group_name', 'topic_name')
+    context = {
+        'topics': user_topics
+    }
+    return render(request, 'quiz_app/ai_generator_page.html', context)
+
+# --- Lưu câu hỏi được tạo bằng AI ---
+@login_required
+@permission_required("quiz_app.add_question", raise_exception=True)
+@transaction.atomic # Đảm bảo tất cả câu hỏi được lưu hoặc không câu nào cả
+def save_ai_questions_view(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        topic_id = data.get('topic_id')
+        questions_to_save = data.get('questions', [])
+
+        # Kiểm tra xem topic có tồn tại và thuộc về user không
+        topic = get_object_or_404(Topic, id=topic_id, user=request.user)
+
+        questions_added_count = 0
+        for q_data in questions_to_save:
+            question_text = q_data.get('question_text')
+            answers_data = q_data.get('answers', [])
+
+            if not question_text or not answers_data:
+                continue # Bỏ qua nếu dữ liệu câu hỏi không đầy đủ
+
+            # Đếm số đáp án đúng để xác định loại câu hỏi
+            correct_answers_count = sum(1 for ans in answers_data if ans.get('is_correct'))
+
+            if correct_answers_count == 0:
+                question_type = 'single_choice' # Mặc định nếu không có cái nào đúng
+            elif correct_answers_count > 1:
+                question_type = 'multiple_choice'
+            else:
+                question_type = 'single_choice'
+
+            # Tạo đối tượng câu hỏi
+            new_question = Question.objects.create(
+                topic=topic,
+                question_text=question_text,
+                question_type=question_type
+            )
+
+            # Tạo các đối tượng đáp án
+            for ans_data in answers_data:
+                Answer.objects.create(
+                    question=new_question,
+                    answer_text=ans_data.get('text'),
+                    is_correct=ans_data.get('is_correct', False)
+                )
+
+            questions_added_count += 1
+
+        return JsonResponse({
+            'success': True, 
+            'message': f'Đã lưu thành công {questions_added_count} câu hỏi vào chủ đề "{topic.topic_name}".'
+        })
+
+    except Exception as e:
+        return JsonResponse({'error': f'Đã có lỗi xảy ra ở server: {str(e)}'}, status=500)

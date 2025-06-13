@@ -134,6 +134,9 @@ urlpatterns = [
         name="quiz_detail_report",
     ),  # Báo cáo chi tiết
     path('ajax/login/', views.ajax_login_view, name='ajax_login'), #Xử lý yêu cầu đăng nhập
+    path('ai/generate-questions/', views.generate_questions_ai_view, name='generate_questions_ai'), #Tạo câu hỏi bằng AI
+    path('ai-generator/', views.ai_generator_page_view, name='ai_generator_page'), #Trang tạo câu hỏi bằng AI
+    path('ai/save-questions/', views.save_ai_questions_view, name='save_ai_questions'), #Lưu câu hỏi tạo bằng AI
 ]
 
 handler400 = bad_request

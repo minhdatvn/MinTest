@@ -1,0 +1,271 @@
+{% extends 'quiz_app/base.html' %}
+{% load static %}
+
+{% block title %}Tạo câu hỏi bằng A.I{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Tạo câu hỏi bằng Trí tuệ nhân tạo</h1>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div id="generator-form-container">
+            <div class="card">
+                <div class="card-body">
+                    <p class="card-text text-muted">Dán một đoạn văn bản (ví dụ: một bài báo, một chương sách, một tài liệu kiến thức) vào ô bên dưới, sau đó chọn các tùy chọn và để A.I tự động tạo ra các câu hỏi trắc nghiệm cho bạn.</p>
+                    
+                    <form id="ai-form">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="user-content" class="form-label fw-bold">Nội dung văn bản:</label>
+                            <textarea class="form-control" id="user-content" rows="10" placeholder="Dán nội dung của bạn vào đây..."></textarea>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="num-questions" class="form-label fw-bold">Số câu hỏi:</label>
+                                <input type="number" class="form-control" id="num-questions" value="5" min="1" max="10">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="num-answers" class="form-label fw-bold">Số đáp án / câu:</label>
+                                <input type="number" class="form-control" id="num-answers" value="4" min="2" max="6">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="topic-select" class="form-label fw-bold">Lưu vào chủ đề:</label>
+                                <select class="form-select" id="topic-select" required>
+                                    <option value="" disabled selected>-- Chọn một chủ đề --</option>
+                                    {% for topic in topics %}
+                                        <option value="{{ topic.id }}">{{ topic.topic_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary mt-4"><i class="bi bi-stars"></i> Tạo câu hỏi</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div id="loading-container" class="text-center p-5 d-none">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3">A.I đang suy nghĩ... Quá trình này có thể mất vài giây.</p>
+        </div>
+
+        <div id="review-container">
+            </div>
+
+    </div>
+    <div class="col-lg-4">
+        <div class="card position-sticky" style="top: 2rem;">
+            <div class="card-body">
+                <h5 class="card-title">Hướng dẫn</h5>
+                <ul>
+                    <li><strong>Nội dung:</strong> Cung cấp văn bản càng chi tiết và rõ ràng, chất lượng câu hỏi càng cao.</li>
+                    <li><strong>Tùy chọn:</strong> Điều chỉnh số lượng câu hỏi và đáp án để phù hợp với nhu cầu của bạn.</li>
+                    <li><strong>Chủ đề:</strong> Các câu hỏi sau khi được lưu sẽ nằm trong chủ đề bạn đã chọn.</li>
+                    <li><strong>Xem lại:</strong> Luôn kiểm tra lại các câu hỏi và đáp án do AI tạo ra trước khi lưu để đảm bảo tính chính xác.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const aiForm = document.getElementById('ai-form');
+        const loadingContainer = document.getElementById('loading-container');
+        const reviewContainer = document.getElementById('review-container');
+        const formContainer = document.getElementById('generator-form-container');
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        // 1. LẮNG NGHE SỰ KIỆN SUBMIT FORM
+        aiForm.addEventListener('submit', function(event) {
+            event.preventDefault(); // Ngăn form gửi đi theo cách truyền thống
+
+            const userContent = document.getElementById('user-content').value.trim();
+            const numQuestions = document.getElementById('num-questions').value;
+            const numAnswers = document.getElementById('num-answers').value;
+            const topicId = document.getElementById('topic-select').value;
+
+            // Kiểm tra đầu vào đơn giản
+            if (!userContent || !topicId) {
+                alert('Vui lòng điền đầy đủ nội dung văn bản và chọn một chủ đề.');
+                return;
+            }
+
+            // Hiển thị trạng thái loading
+            formContainer.classList.add('d-none');
+            loadingContainer.classList.remove('d-none');
+            reviewContainer.innerHTML = ''; // Xóa kết quả cũ
+
+            // 2. GỌI API ĐẾN BACKEND
+            fetch("{% url 'generate_questions_ai' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({
+                    content: userContent,
+                    num_questions: numQuestions,
+                    num_answers: numAnswers
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                // Tắt trạng thái loading
+                loadingContainer.classList.add('d-none');
+                formContainer.classList.remove('d-none'); // Hiện lại form để có thể tạo tiếp
+
+                if (result.error) {
+                    alert(`Lỗi: ${result.error}`);
+                } else if (result.success) {
+                    // 3. HIỂN THỊ GIAO DIỆN XEM LẠI
+                    renderReviewUI(result.data, topicId);
+                }
+            })
+            .catch(error => {
+                loadingContainer.classList.add('d-none');
+                formContainer.classList.remove('d-none');
+                alert('Đã có lỗi mạng xảy ra. Vui lòng thử lại.');
+                console.error('Error:', error);
+            });
+        });
+            
+        // 2. THÊM BỘ LẮNG NGHE SỰ KIỆN MỚI CHO FORM LƯU CÂU HỎI
+        reviewContainer.addEventListener('submit', function(event) {
+            // Chỉ xử lý nếu sự kiện đến từ form 'save-questions-form'
+            if (event.target.id !== 'save-questions-form') {
+                return;
+            }
+
+            event.preventDefault();
+
+            const form = event.target;
+            const topicId = form.querySelector('input[name="topic_id"]').value;
+            const questionBlocks = form.querySelectorAll('.ai-question-block');
+
+            let questionsToSave = [];
+
+            questionBlocks.forEach((block, q_index) => {
+                // Chỉ lấy dữ liệu nếu checkbox "Lưu câu hỏi này" được chọn
+                const includeCheckbox = block.querySelector(`input[name="include_question_${q_index}"]`);
+                if (includeCheckbox && includeCheckbox.checked) {
+
+                    const questionText = block.querySelector(`textarea[name="question_text_${q_index}"]`).value;
+                    const answerInputs = block.querySelectorAll(`input[type="text"][name^="answer_text_${q_index}"]`);
+                    const correctRadio = block.querySelector(`input[type="radio"][name="correct_answer_${q_index}"]:checked`);
+
+                    let answers = [];
+                    answerInputs.forEach((ansInput, a_index) => {
+                        answers.push({
+                            text: ansInput.value,
+                            is_correct: (correctRadio && parseInt(correctRadio.value) === a_index)
+                        });
+                    });
+
+                    questionsToSave.push({
+                        question_text: questionText,
+                        answers: answers
+                    });
+                }
+            });
+
+            if (questionsToSave.length === 0) {
+                alert('Bạn chưa chọn câu hỏi nào để lưu.');
+                return;
+            }
+
+            // Gửi dữ liệu đã được xử lý lên backend
+            fetch("{% url 'save_ai_questions' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({
+                    topic_id: topicId,
+                    questions: questionsToSave
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    alert(result.message);
+                    reviewContainer.innerHTML = ''; // Xóa form sau khi lưu thành công
+                } else {
+                    alert(`Lỗi: ${result.error}`);
+                }
+            })
+            .catch(error => {
+                alert('Đã có lỗi mạng xảy ra khi đang lưu. Vui lòng thử lại.');
+                console.error('Save Error:', error);
+            });
+        });
+
+        // HÀM VẼ GIAO DIỆN XEM LẠI
+        function renderReviewUI(questionsData, topicId) {
+            if (!questionsData || questionsData.length === 0) {
+                reviewContainer.innerHTML = '<div class="alert alert-warning">AI không thể tạo câu hỏi từ nội dung bạn cung cấp. Vui lòng thử lại với nội dung khác.</div>';
+                return;
+            }
+
+            let reviewHtml = `
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h4 class="mb-0">Xem lại các câu hỏi do A.I tạo</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>Hãy kiểm tra, chỉnh sửa nếu cần, và bỏ chọn những câu bạn không muốn lưu.</p>
+                        <form id="save-questions-form">
+                            <input type="hidden" name="topic_id" value="${topicId}">
+            `;
+
+            questionsData.forEach((question, q_index) => {
+                reviewHtml += `
+                    <div class="ai-question-block border rounded p-3 mb-3">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="include_question_${q_index}" checked>
+                            <label class="form-check-label fw-bold">Lưu câu hỏi này</label>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label small">Nội dung câu hỏi:</label>
+                            <textarea class="form-control" name="question_text_${q_index}" rows="2">${question.question_text}</textarea>
+                        </div>
+                        
+                        <label class="form-label small">Các đáp án:</label>`;
+                
+                question.answers.forEach((answer, a_index) => {
+                    const isChecked = answer.is_correct ? 'checked' : '';
+                    reviewHtml += `
+                        <div class="input-group mb-2">
+                            <div class="input-group-text">
+                                <input class="form-check-input mt-0" type="radio" name="correct_answer_${q_index}" value="${a_index}" ${isChecked}>
+                            </div>
+                            <input type="text" class="form-control" name="answer_text_${q_index}_${a_index}" value="${answer.text}">
+                        </div>
+                    `;
+                });
+
+                reviewHtml += '</div>'; // Đóng .ai-question-block
+            });
+
+            reviewHtml += `
+                            <hr>
+                            <button type="submit" class="btn btn-success">Lưu các câu hỏi đã chọn</button>
+                        </form>
+                    </div>
+                </div>
+            `;
+
+            reviewContainer.innerHTML = reviewHtml;
+        }
+    });
+</script>
+{% endblock %}
