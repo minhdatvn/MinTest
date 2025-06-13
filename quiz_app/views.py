@@ -1012,24 +1012,15 @@ def attempt_result(request, attempt_id):
     # === KẾT THÚC PHẦN SỬA ĐỔI LOGIC SẮP XẾP ===
     homepage_url = request.build_absolute_uri(reverse('guest_homepage'))
 
-    # --- LOGIC MỚI ĐỂ LẤY TÊN ĐỀ THI GỐC ---
-    # Mặc định lấy tên của đề thi hiện tại (cho trường hợp đề tĩnh)
     share_quiz_name = attempt.quiz.quiz_name
-    # Nếu đây là một bản sao (snapshot) và có liên kết đến đề gốc
     if attempt.quiz.is_snapshot and attempt.quiz.template_for:
-        # Lấy tên của đề thi gốc để chia sẻ
         share_quiz_name = attempt.quiz.template_for.quiz_name
+
     share_access_code = None
-    # Nếu là snapshot, lấy mã từ đề thi gốc
     if attempt.quiz.is_snapshot and attempt.quiz.template_for:
         share_access_code = attempt.quiz.template_for.access_code
-    # Nếu là đề thi tĩnh, lấy mã từ chính nó
     elif not attempt.quiz.is_snapshot:
         share_access_code = attempt.quiz.access_code
-    # --- LOGIC MỚI ĐỂ LẤY ID ĐỀ THI GỐC CHO VIỆC TẠO MÃ ---
-    code_generation_quiz_id = attempt.quiz.id
-    if attempt.quiz.is_snapshot and attempt.quiz.template_for:
-        code_generation_quiz_id = attempt.quiz.template_for.id
 
     context = {
         "attempt": attempt,
@@ -1037,7 +1028,6 @@ def attempt_result(request, attempt_id):
         "homepage_url": homepage_url,
         "share_quiz_name": share_quiz_name,
         "share_access_code": share_access_code,
-        "code_generation_quiz_id": code_generation_quiz_id,
     }
     return render(request, "quiz_app/attempt_result.html", context)
 
